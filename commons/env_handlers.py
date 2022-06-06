@@ -5,32 +5,32 @@ DEV = 'dev'
 PROD = 'prod'
 STAGING = 'staging'
 QA = 'qa'
-ENVIRONMENT_KEY = 'ENVIRONMENT'
+ENV_KEY = 'ENVIRONMENT'
 
 
 def configure_environment_key(key):
-    global ENVIRONMENT_KEY
-    ENVIRONMENT_KEY = key
+    global ENV_KEY
+    ENV_KEY = key
 
 
 def set_env_to_prod():
-    environ[ENVIRONMENT_KEY] = PROD
+    environ[ENV_KEY] = PROD
 
 
 def set_env_to_staging():
-    environ[ENVIRONMENT_KEY] = STAGING
+    environ[ENV_KEY] = STAGING
 
 
 def set_env_to_qa():
-    environ[ENVIRONMENT_KEY] = QA
+    environ[ENV_KEY] = QA
 
 
 def set_env_to_dev():
-    environ[ENVIRONMENT_KEY] = DEV
+    environ[ENV_KEY] = DEV
 
 
 def get_working_env(default: str = None):
-    return environ.get(ENVIRONMENT_KEY, default)
+    return environ.get(ENV_KEY, default)
 
 
 def is_env_prod():
