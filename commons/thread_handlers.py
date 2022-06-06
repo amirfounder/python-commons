@@ -1,24 +1,18 @@
 from threading import Thread as _Thread
 
 
-class Thread:
-    def __init__(self, target, args=None, kwargs=None, daemon=True, *thread_args, **thread_kwargs):
-        self._result = [None]
-        self.target = self.build_threaded_fn(target)
+class ThreadWrapper:
+    def __init__(self, target, daemon=True, *args, **kwargs):
+        self.result = None
+        self._target = self._build_target_fn(target)
         self.thread = _Thread(
-            target=self.target,
-            args=args,
-            kwargs=kwargs,
+            target=self._target,
             daemon=daemon,
-            *thread_args,
-            **thread_kwargs
+            *args,
+            **kwargs
         )
 
-    def build_threaded_fn(self, func):
+    def _build_target_fn(self, func):
         def inner(*args, **kwargs):
-            self._result[0] = func(*args, **kwargs)
+            self.result = func(*args, **kwargs)
         return inner
-
-    @property
-    def result(self):
-        return self._result[0]
