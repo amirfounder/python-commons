@@ -1,0 +1,3 @@
+def screenshot():
+    pass
+
