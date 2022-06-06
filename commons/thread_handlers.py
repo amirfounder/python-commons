@@ -1,4 +1,5 @@
 from threading import Thread as _Thread
+from typing import Iterable
 
 
 class ThreadWrapper:
@@ -17,15 +18,27 @@ class ThreadWrapper:
         return inner
 
 
-def run_in_separate_thread(target, args=None, kwargs=None, *thread_wrapper_args, **thread_wrapper_kwargs):
+def run_in_separate_thread(target, *args, **kwargs):
     wrapper = ThreadWrapper(
         target=target,
-        args=args,
-        kwargs=kwargs,
         daemon=True,
-        *thread_wrapper_args,
-        **thread_wrapper_kwargs
+        *args,
+        **kwargs
     )
     wrapper.thread.start()
     return wrapper
+
+
+def start_threads(threads: Iterable[_Thread | ThreadWrapper]):
+    for thread in threads:
+        if isinstance(thread, ThreadWrapper):
+            thread = thread.thread
+        thread.start()
+
+
+def join_threads(threads: Iterable[_Thread | ThreadWrapper]):
+    for thread in threads:
+        if isinstance(thread, ThreadWrapper):
+            thread = thread.thread
+        thread.start()
 

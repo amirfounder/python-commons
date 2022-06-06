@@ -2,7 +2,7 @@ import os
 from threading import current_thread
 from typing import Optional
 
-from commons.file_handlers import safe_write
+from commons.file_handlers import safe_write_to_file
 from commons.datetime_handlers import now
 from commons.env_handlers import get_working_env
 
@@ -31,7 +31,7 @@ def _log(message, level: str = 'info'):
     message = ''.join(message.values())
 
     print(message)
-    safe_write(PATH, message + '\n', mode='a')
+    safe_write_to_file(PATH, message + '\n', mode='a')
 
 
 def log_success(message):
