@@ -1,8 +1,29 @@
 import json
+from os import makedirs
+from os.path import exists
 
 
 def format_exception_caught_message(e: Exception):
     return f'Caught {type(e).__name__} Exception: {str(e)}'
+
+
+def create_file(path):
+    open(path, 'x').close()
+
+
+def ensure_filepath_exists(path):
+    if exists(path):
+        return
+
+    folders = path.split('/')
+    filepath = folders.pop()
+    dir_path = '/'.join(folders)
+
+    makedirs(dir_path)
+
+    path = '/'.join([dir_path, filepath])
+
+    create_file(path)
 
 
 def read(path, mode='r', encoding='utf-8', **kwargs):
@@ -35,6 +56,7 @@ def write(path, contents, mode='w', encoding='utf-8', **kwargs):
 
 def safe_read(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
+        ensure_filepath_exists(path)
         return read(path, mode, encoding, **kwargs)
 
     except Exception as e:
@@ -45,6 +67,7 @@ def safe_read(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=pr
 
 def safe_write(path, contents, mode='w', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
+        ensure_filepath_exists(path)
         write(path, contents, mode, encoding, **kwargs)
 
     except Exception as e:
