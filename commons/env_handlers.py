@@ -1,50 +1,50 @@
 from os import environ
 
 
-_DEV = 'dev'
-_PROD = 'prod'
-_STAGING = 'staging'
-_QA = 'qa'
-_ENV_KEY = 'ENVIRONMENT'
+DEV = 'dev'
+PROD = 'prod'
+STAGING = 'staging'
+QA = 'qa'
+ENV_KEY = 'ENVIRONMENT'
 
 
 def configure_environment_key(key):
-    global _ENV_KEY
-    _ENV_KEY = key
+    global ENV_KEY
+    ENV_KEY = key
 
 
 def set_env_to_prod():
-    environ[_ENV_KEY] = _PROD
+    environ[ENV_KEY] = PROD
 
 
 def set_env_to_staging():
-    environ[_ENV_KEY] = _STAGING
+    environ[ENV_KEY] = STAGING
 
 
 def set_env_to_qa():
-    environ[_ENV_KEY] = _QA
+    environ[ENV_KEY] = QA
 
 
 def set_env_to_dev():
-    environ[_ENV_KEY] = _DEV
+    environ[ENV_KEY] = DEV
 
 
 def get_working_env(default: str = None):
-    return environ.get(_ENV_KEY, default)
+    return environ.get(ENV_KEY, default)
 
 
 def is_env_prod():
-    return get_working_env() == _PROD
+    return get_working_env() == PROD
 
 
 def is_env_staging():
-    return get_working_env() == _STAGING
+    return get_working_env() == STAGING
 
 
 def is_env_qa():
-    return get_working_env() == _QA
+    return get_working_env() == QA
 
 
 def is_env_dev():
-    return get_working_env() == _DEV
+    return get_working_env() == DEV
 
