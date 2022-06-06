@@ -5,7 +5,7 @@ def format_exception_caught_message(e: Exception):
     return f'Caught {type(e).__name__} Exception: {str(e)}'
 
 
-def safe_read(path, mode='r', encoding='utf-8', log_on_failure=True, log_fn=print, **kwargs):
+def read(path, mode='r', encoding='utf-8', **kwargs):
     kwargs.update({
         'file': path,
         'mode': mode,
@@ -15,9 +15,27 @@ def safe_read(path, mode='r', encoding='utf-8', log_on_failure=True, log_fn=prin
     if mode.endswith('b'):
         kwargs.pop('encoding')
 
+    with open(**kwargs) as f:
+        return f.read()
+
+
+def write(path, contents, mode='w', encoding='utf-8', **kwargs):
+    kwargs.update({
+        'file': path,
+        'mode': mode,
+        'encoding': encoding
+    })
+
+    if mode.endswith('b'):
+        kwargs.pop('encoding')
+
+    with open(**kwargs) as f:
+        f.write(contents)
+
+
+def safe_read(path, mode='r', encoding='utf-8', log_on_failure=True, log_fn=print, **kwargs):
     try:
-        with open(**kwargs) as f:
-            return f.read()
+        return read(path, mode, encoding, **kwargs)
 
     except Exception as e:
         if log_on_failure:
@@ -26,18 +44,8 @@ def safe_read(path, mode='r', encoding='utf-8', log_on_failure=True, log_fn=prin
 
 
 def safe_write(path, contents, mode='w', encoding='utf-8', log_on_failure=True, log_fn=print, **kwargs):
-    kwargs.update({
-        'file': path,
-        'mode': mode,
-        'encoding': encoding
-    })
-
-    if mode.endswith('b'):
-        kwargs.pop('encoding')
-
     try:
-        with open(**kwargs) as f:
-            f.write(contents)
+        write(path, contents, mode, encoding, **kwargs)
 
     except Exception as e:
         if log_on_failure:
@@ -45,7 +53,7 @@ def safe_write(path, contents, mode='w', encoding='utf-8', log_on_failure=True, 
             log_fn(msg)
 
 
-def read_json(path, default=None, **kwargs):
+def read_dict_from_json(path, default=None, **kwargs):
     if default is None:
         default = {}
 
@@ -59,14 +67,9 @@ def read_json(path, default=None, **kwargs):
     return result
 
 
-def write_dict_as_json(path, dict_obj, log_on_failure=True, log_fn=print, *args, **kwargs):
-    if 'indent' not in kwargs:
-        kwargs['indent'] = 4
-    if 'sort_keys' not in kwargs:
-        kwargs['sort_keys'] = True
-
+def write_dict_as_json(path, dict_obj, indent=4, sort_keys=True, log_on_failure=True, log_fn=print):
     try:
-        json_obj = json.dumps(dict_obj, *args, **kwargs)
+        json_obj = json.dumps(dict_obj, indent=indent, sort_keys=sort_keys)
         safe_write(path, json_obj, log_on_failure=log_on_failure, log_fn=log_fn)
 
     except Exception as e:
