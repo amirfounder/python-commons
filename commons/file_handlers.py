@@ -26,7 +26,7 @@ def ensure_filepath_exists(path):
     create_file(path)
 
 
-def read(path, mode='r', encoding='utf-8', **kwargs):
+def read_from_file(path, mode='r', encoding='utf-8', **kwargs):
     kwargs.update({
         'file': path,
         'mode': mode,
@@ -40,7 +40,7 @@ def read(path, mode='r', encoding='utf-8', **kwargs):
         return f.read()
 
 
-def write(path, contents, mode='w', encoding='utf-8', **kwargs):
+def write_to_file(path, contents, mode='w', encoding='utf-8', **kwargs):
     kwargs.update({
         'file': path,
         'mode': mode,
@@ -54,10 +54,10 @@ def write(path, contents, mode='w', encoding='utf-8', **kwargs):
         f.write(contents)
 
 
-def safe_read(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
+def safe_read_from_file(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
         ensure_filepath_exists(path)
-        return read(path, mode, encoding, **kwargs)
+        return read_from_file(path, mode, encoding, **kwargs)
 
     except Exception as e:
         if log_on_exception:
@@ -65,10 +65,10 @@ def safe_read(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=pr
             log_fn(msg)
 
 
-def safe_write(path, contents, mode='w', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
+def safe_write_to_file(path, contents, mode='w', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
         ensure_filepath_exists(path)
-        write(path, contents, mode, encoding, **kwargs)
+        write_to_file(path, contents, mode, encoding, **kwargs)
 
     except Exception as e:
         if log_on_exception:
@@ -76,8 +76,8 @@ def safe_write(path, contents, mode='w', encoding='utf-8', log_on_exception=True
             log_fn(msg)
 
 
-def read_dict_from_json(path, default=None, **kwargs):
-    result = safe_read(path, **kwargs)
+def read_json_as_dict_from_file(path, default=None, **kwargs):
+    result = safe_read_from_file(path, **kwargs)
 
     if result is None:
         result = default
@@ -87,10 +87,10 @@ def read_dict_from_json(path, default=None, **kwargs):
     return result
 
 
-def write_dict_as_json(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
+def write_dict_as_json_to_file(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
     try:
         json_obj = json.dumps(dict_obj, indent=indent, sort_keys=sort_keys)
-        safe_write(path, json_obj, log_on_exception=log_on_exception, log_fn=log_fn)
+        safe_write_to_file(path, json_obj, log_on_exception=log_on_exception, log_fn=log_fn)
 
     except Exception as e:
         if log_on_exception:
