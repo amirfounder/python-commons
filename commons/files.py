@@ -33,30 +33,27 @@ def write(path, contents, mode='w', encoding='utf-8', **kwargs):
         f.write(contents)
 
 
-def safe_read(path, mode='r', encoding='utf-8', log_on_failure=True, log_fn=print, **kwargs):
+def safe_read(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
         return read(path, mode, encoding, **kwargs)
 
     except Exception as e:
-        if log_on_failure:
+        if log_on_exception:
             msg = format_exception_caught_message(e)
             log_fn(msg)
 
 
-def safe_write(path, contents, mode='w', encoding='utf-8', log_on_failure=True, log_fn=print, **kwargs):
+def safe_write(path, contents, mode='w', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
         write(path, contents, mode, encoding, **kwargs)
 
     except Exception as e:
-        if log_on_failure:
+        if log_on_exception:
             msg = format_exception_caught_message(e)
             log_fn(msg)
 
 
 def read_dict_from_json(path, default=None, **kwargs):
-    if default is None:
-        default = {}
-
     result = safe_read(path, **kwargs)
 
     if result is None:
@@ -67,12 +64,12 @@ def read_dict_from_json(path, default=None, **kwargs):
     return result
 
 
-def write_dict_as_json(path, dict_obj, indent=4, sort_keys=True, log_on_failure=True, log_fn=print):
+def write_dict_as_json(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
     try:
         json_obj = json.dumps(dict_obj, indent=indent, sort_keys=sort_keys)
-        safe_write(path, json_obj, log_on_failure=log_on_failure, log_fn=log_fn)
+        safe_write(path, json_obj, log_on_exception=log_on_exception, log_fn=log_fn)
 
     except Exception as e:
-        if log_on_failure:
+        if log_on_exception:
             msg = format_exception_caught_message(e)
             log_fn(msg)
