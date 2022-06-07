@@ -1,10 +1,10 @@
-from commons.helpers.logging import log_error, configure_path
+from commons.helpers.logging import log_error, configure_logging_path
 
 
 def test_log_error_happy_path():
-    configure_path('tests/dummy-data/logs.txt')
+    configure_logging_path('tests/dummy-data/logs.txt')
     log_error('This is a test')
-    configure_path(None)
+    configure_logging_path(None)
 
 
 def test_log_error_sad_path_no_path_configured():

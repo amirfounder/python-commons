@@ -10,7 +10,7 @@ from commons.helpers.env import get_working_env
 PATH = None
 
 
-def configure_path(path):
+def configure_logging_path(path):
     global PATH
     PATH = path
 

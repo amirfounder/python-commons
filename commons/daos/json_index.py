@@ -32,6 +32,9 @@ class AbstractJsonIndex(ABC):
         if flush:
             self.flush()
 
+    def get(self, key, default=None):
+        return self.index.get(key, default)
+
     def load(self):
         self.index = safe_read_json_as_obj_from_file(self.path, {})
 
