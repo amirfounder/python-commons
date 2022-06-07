@@ -11,19 +11,24 @@ def create_file(path):
     open(path, 'x').close()
 
 
-def ensure_filepath_exists(path):
+def ensure_path_exists(path, is_file=True):
     if exists(path):
         return
 
     folders = path.split('/')
-    filepath = folders.pop()
+    filepath = None
+    
+    if is_file:
+        filepath = folders.pop()
+    
     dir_path = '/'.join(folders)
 
-    makedirs(dir_path)
-
-    path = '/'.join([dir_path, filepath])
-
-    create_file(path)
+    if not exists(dir_path):
+        makedirs(dir_path)
+    
+    if is_file:
+        path = '/'.join([dir_path, filepath])
+        create_file(path)
 
 
 def read_from_file(path, mode='r', encoding='utf-8', **kwargs):
@@ -56,7 +61,7 @@ def write_to_file(path, contents, mode='w', encoding='utf-8', **kwargs):
 
 def safe_read_from_file(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
-        ensure_filepath_exists(path)
+        ensure_path_exists(path)
         return read_from_file(path, mode, encoding, **kwargs)
 
     except Exception as e:
@@ -67,7 +72,7 @@ def safe_read_from_file(path, mode='r', encoding='utf-8', log_on_exception=True,
 
 def safe_write_to_file(path, contents, mode='w', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
     try:
-        ensure_filepath_exists(path)
+        ensure_path_exists(path)
         write_to_file(path, contents, mode, encoding, **kwargs)
 
     except Exception as e:
