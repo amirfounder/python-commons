@@ -76,13 +76,18 @@ def safe_write_to_file(path, contents, mode='w', encoding='utf-8', log_on_except
             log_fn(msg)
 
 
-def safe_read_json_as_obj_from_file(path, default=None, **kwargs):
+def safe_read_json_as_obj_from_file(path, default=None, log_on_exception=True, log_fn=print, **kwargs):
     result = safe_read_from_file(path, **kwargs)
+
+    try:
+        result = json.loads(result)
+    except Exception as e:
+        if log_on_exception:
+            msg = format_exception_caught_message(e)
+            log_fn(msg)
 
     if result is None:
         result = default
-    else:
-        result = json.loads(result)
 
     return result
 
