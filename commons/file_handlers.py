@@ -87,12 +87,10 @@ def safe_read_json_as_obj_from_file(path, default=None, log_on_exception=True, l
     try:
         result = json.loads(result)
     except Exception as e:
+        result = default
         if log_on_exception:
             msg = format_exception_caught_message(e)
             log_fn(msg)
-
-    if result is None:
-        result = default
 
     return result
 
