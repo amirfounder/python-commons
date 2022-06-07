@@ -76,7 +76,7 @@ def safe_write_to_file(path, contents, mode='w', encoding='utf-8', log_on_except
             log_fn(msg)
 
 
-def read_json_as_dict_from_file(path, default=None, **kwargs):
+def safe_read_json_as_obj_from_file(path, default=None, **kwargs):
     result = safe_read_from_file(path, **kwargs)
 
     if result is None:
@@ -87,7 +87,7 @@ def read_json_as_dict_from_file(path, default=None, **kwargs):
     return result
 
 
-def write_dict_as_json_to_file(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
+def safe_write_obj_as_json_to_file(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
     try:
         json_obj = json.dumps(dict_obj, indent=indent, sort_keys=sort_keys)
         safe_write_to_file(path, json_obj, log_on_exception=log_on_exception, log_fn=log_fn)
