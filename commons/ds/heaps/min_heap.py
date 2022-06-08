@@ -1,17 +1,15 @@
-from heapq import heappush, heappop
+from .base import AbstractHeap
+from heapq import heappop, heappush
 
 
-class MinHeap:
-    def __init__(self):
-        self.heap = []
-
+class MinHeap(AbstractHeap):
     def add(self, item):
-        heappush(self.heap, item)
+        heappush(self._heap, item)
 
     def pop(self):
-        if self.heap:
-            return heappop(self.heap)
+        if self._heap:
+            return heappop(self._heap)
 
     def peek(self):
-        if self.heap:
-            return self.heap[-1]
+        if self._heap:
+            return self._heap[-1]
