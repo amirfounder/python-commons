@@ -1,9 +1,10 @@
 from multipledispatch import dispatch
 from mss import mss
+import numpy as np
 
 
 def _screenshot(sct, monitor: dict[str, int]):
-    return sct.grab(monitor)
+    return np.array(sct.grab(monitor))
 
 
 @dispatch(dict[str, int])
@@ -31,6 +32,6 @@ def screenshot(monitor_idx: int):
 @dispatch((tuple[int, int, int, int], list[int]))
 def screenshot(rect: tuple[int, int, int, int] | list[int]):
     y, x, w, h = rect
-    monitor = {'top': y, 'left': x, 'width': w, 'height': h}
+    monitor = {'left': x, 'top': y, 'width': w, 'height': h}
     with mss() as sct:
         return _screenshot(sct, monitor)
