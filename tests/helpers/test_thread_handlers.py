@@ -19,4 +19,3 @@ def test():
 
     r = wrapper.result
     assert r == 'Hello'
-

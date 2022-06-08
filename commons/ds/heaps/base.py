@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Optional, List
 
 
 class AbstractHeap(ABC):
-    def __init__(self, items):
+    def __init__(self, items: Optional[List] = None):
+        if items is None:
+            items = []
+
         self._heap = []
         for item in items:
             self.add(item)
