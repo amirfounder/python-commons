@@ -2,7 +2,8 @@ import webbrowser
 
 
 CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(CHROME_PATH))
+CHROME_KEY = 'chrome'
+webbrowser.register(CHROME_KEY, None, webbrowser.BackgroundBrowser(CHROME_PATH))
 
 
 def register_to_webbrowser(key, path):
@@ -14,5 +15,5 @@ def set_chrome_path(path):
     CHROME_PATH = path
 
 
-def open_tab(url):
-    webbrowser.get('chrome').open_new_tab(url)
+def open_tab(url, key=CHROME_KEY):
+    webbrowser.get(key).open_new_tab(url)

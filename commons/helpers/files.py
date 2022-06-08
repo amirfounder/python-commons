@@ -1,6 +1,7 @@
 import json
 from os import makedirs
 from os.path import exists
+from threading import Lock
 
 
 def format_exception_caught_message(e: Exception):
@@ -8,7 +9,8 @@ def format_exception_caught_message(e: Exception):
 
 
 def create_file(path):
-    open(path, 'x').close()
+    with Lock():
+        open(path, 'x').close()
 
 
 def ensure_path_exists(path, is_file=True):
@@ -41,8 +43,9 @@ def read_from_file(path, mode='r', encoding='utf-8', **kwargs):
     if mode.endswith('b'):
         kwargs.pop('encoding')
 
-    with open(**kwargs) as f:
-        return f.read()
+    with Lock():
+        with open(**kwargs) as f:
+            return f.read()
 
 
 def write_to_file(path, contents, mode='w', encoding='utf-8', **kwargs):
@@ -55,8 +58,9 @@ def write_to_file(path, contents, mode='w', encoding='utf-8', **kwargs):
     if mode.endswith('b'):
         kwargs.pop('encoding')
 
-    with open(**kwargs) as f:
-        f.write(contents)
+    with Lock():
+        with open(**kwargs) as f:
+            f.write(contents)
 
 
 def safe_read_from_file(path, mode='r', encoding='utf-8', log_on_exception=True, log_fn=print, **kwargs):
