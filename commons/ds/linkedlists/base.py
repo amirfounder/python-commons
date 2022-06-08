@@ -29,7 +29,7 @@ class AbstractDoublyLinkedNode(AbstractSinglyLinkedNode, ABC):
         self.prev = prev_node
 
 
-NodeType = TypeVar('NodeType', AbstractSinglyLinkedNode, AbstractDoublyLinkedNode)
+NodeType = TypeVar('NodeType', AbstractLinkedNode, AbstractSinglyLinkedNode, AbstractDoublyLinkedNode)
 
 
 class AbstractLinkedList(ABC):
