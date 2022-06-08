@@ -1,8 +1,8 @@
-from commons.helpers.image_processing import screenshot
+from commons.helpers.image_processing import screenshot, save_np_array_as_img
 
 
 def test_screenshot_with_monitor_idx():
-    np_img = screenshot(1)
+    pass
 
 
 def test_screenshot_with_tuple():

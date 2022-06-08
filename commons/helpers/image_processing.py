@@ -1,6 +1,13 @@
 from multipledispatch import dispatch
 from mss import mss
 import numpy as np
+import cv2
+
+from numpy.typing import NDArray
+
+
+def save_np_array_as_img(path, np_array: NDArray):
+    cv2.imwrite(path, np_array)
 
 
 def _screenshot(sct, monitor: dict[str, int]):
