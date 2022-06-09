@@ -8,12 +8,12 @@ from commons.helpers.files import (
 
 
 class AbstractJsonIndex(ABC):
-    def __init__(self, path, flush_after_put=False, load=True):
-        self.path = path
+    def __init__(self, source_path, flush_after_put=False, load=True):
+        self.source_path = source_path
         self.flush_after_put = flush_after_put
         self.source = None
 
-        ensure_path_exists(self.path)
+        ensure_path_exists(self.source_path)
         if load:
             self.load()
 
@@ -36,7 +36,7 @@ class AbstractJsonIndex(ABC):
         return self.source.get(key, default)
 
     def load(self):
-        self.source = safe_read_json_as_obj_from_file(self.path, {})
+        self.source = safe_read_json_as_obj_from_file(self.source_path, {})
 
     def flush(self):
-        safe_write_obj_as_json_to_file(self.path, self.source)
+        safe_write_obj_as_json_to_file(self.source_path, self.source)
