@@ -1,7 +1,7 @@
 from abc import ABC
 from datetime import datetime
 
-from commons import parse_iso_dt
+from commons import parse_iso_dt, now
 from commons.util import safe_cast, get_attributes, empty_list_if_none, empty_dict_if_none
 
 TYPE_MAPPER: dict = {
@@ -43,6 +43,10 @@ class AbstractJsonIndexModelsList(Dictable, ABC):
 
 
 class AbstractJsonIndexModel(Dictable, ABC):
-    def __init__(self, **kwargs):
-        self.updated_at = parse_iso_dt(kwargs.get('updated_at'))
-        self.created_at = parse_iso_dt(kwargs.get('created_at'))
+    pass
+
+
+class BaseJsonIndexModel(AbstractJsonIndexModel):
+    def __init__(self, updated_at: str = None, created_at: str = None):
+        self.created_at = parse_iso_dt(created_at) if created_at else now()
+        self.updated_at = parse_iso_dt(updated_at) if updated_at else now()
