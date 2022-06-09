@@ -4,10 +4,5 @@ setup(
     name='commons',
     version='0.0.11',
     packages=find_packages(),
-    install_requires=[
-        'mss~=6.1.0',
-        'multipledispatch~=0.6.0',
-        'numpy~=1.22.4',
-        'opencv-python~=4.5.5.64'
-    ]
+    install_requires=[]
 )
