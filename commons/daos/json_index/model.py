@@ -1,16 +1,20 @@
 from abc import ABC
 from datetime import datetime
+from typing import Any, Callable
+
 from commons.util import safe_cast
 
 
 class Dictable(ABC):
-    def __init__(self):
-        self._type_map = {
-            datetime: lambda v: v.isoformat(),
-            AbstractJsonIndexModel: lambda v: dict,
-            dict: lambda v: {_k: safe_cast(_v or {}, dict, False) for _k, _v in v.items()},
-            list: lambda v: [safe_cast(_v or {}, dict, False) for _v in v]
-        }
+    _type_map: dict[Any, Callable] = {
+        datetime: lambda v: v.isoformat(),
+        dict: lambda v: {_k: safe_cast(_v or {}, dict, False) for _k, _v in v.items()},
+        list: lambda v: [safe_cast(_v or {}, dict, False) for _v in v]
+    }
+
+    def __init_subclass__(cls, **kwargs):
+        if cls not in cls._type_map:
+            cls._type_map[cls] = dict
 
     def __iter__(self):
         items = []
@@ -21,21 +25,12 @@ class Dictable(ABC):
 
         for name, value in items:
             v_type = type(value)
-            if v_type is not str:
+            if v_type not in [str, int, bool, list, dict]:
                 if v_type in self._type_map:
                     value = self._type_map[v_type](value)
-                    yield name, value
-
-                for type_ in self._type_map:
-                    if isinstance(value, type_):
-                        value = self._type_map[type_](value)
-                        yield name, value
-
-                value = str(value)
+                else:
+                    value = str(value)
             yield name, value
-
-    def _register_type_cast_fn(self, type_, cast_fn):
-        self._type_map[type_] = cast_fn
 
 
 class AbstractJsonIndexModel(Dictable, ABC):
