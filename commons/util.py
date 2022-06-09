@@ -1,3 +1,6 @@
+from typing import Any
+
+
 def merge_lists(*args):
     result = []
     for arg in args:
@@ -6,12 +9,14 @@ def merge_lists(*args):
     return result
 
 
-def safe_cast(value, type_, return_exception: bool = True):
+def safe_cast(value, type_, return_exception: bool = True, default_return: Any = None):
     try:
         type_(value)
     except Exception as e:
         if return_exception:
             return e
+        if default_return:
+            return default_return
 
 
 def get_attributes(cls, include_private=False, include_dunder=False, include_callables=False):
