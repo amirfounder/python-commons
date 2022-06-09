@@ -9,3 +9,11 @@ def merge_lists(*args):
         if isinstance(arg, list):
             result.extend(arg)
     return result
+
+
+def safe_cast(value, type_, return_exception: bool = True):
+    try:
+        type_(value)
+    except Exception as e:
+        if return_exception:
+            return e
