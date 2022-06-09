@@ -1,5 +1,7 @@
 from abc import ABC
 from datetime import datetime
+from typing import Type
+
 from commons.util import safe_cast
 
 
@@ -7,7 +9,8 @@ class Dictable(ABC):
     def __init__(self):
         self._type_map = {
             datetime: lambda v: v.isoformat(),
-            AbstractJsonIndexModel: lambda v: dict(v),
+            AbstractJsonIndexModel: lambda v: dict,
+            Type[AbstractJsonIndexModel]: lambda v: dict,
             dict: lambda v: {_k: safe_cast(_v or {}, dict, False) for _k, _v in v.items()},
             list: lambda v: [safe_cast(_v or {}, dict, False) for _v in v]
         }
