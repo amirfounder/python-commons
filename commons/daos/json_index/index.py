@@ -18,13 +18,13 @@ class AbstractJsonIndex(ABC):
             self.load()
 
     def __len__(self):
-        return self.source.__len__()
+        return len(self.source)
 
     def __iter__(self):
-        return self.source.__iter__()
+        return iter(self.source)
 
     def __contains__(self, o):
-        return self.source.__contains__(o)
+        return o in self.source
 
     def put(self, key, value, **kwargs):
         flush = kwargs['flush'] if 'flush' in kwargs else self.flush_after_put
@@ -34,6 +34,10 @@ class AbstractJsonIndex(ABC):
 
     def get(self, key, default=None):
         return self.source.get(key, default)
+
+    def all(self):
+        for k, v in self.source:
+            yield k, v
 
     def load(self):
         self.source = safe_read_json_as_obj_from_file(self.source_path, {})
