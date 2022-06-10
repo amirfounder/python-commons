@@ -1,10 +1,10 @@
 from datetime import datetime
 
 from commons import now, parse_iso, format_iso
-from commons.daos.json_index.model import Key, AbstractModel, set_default_jsonable_fns
+from commons.daos.json_index.model import AbstractJsonModelKey as Key, AbstractJsonModel as AbstractModel, set_default_jsonable_loaders
 
 
-set_default_jsonable_fns(datetime, to_jsonable=format_iso, from_jsonable=parse_iso)
+set_default_jsonable_loaders(datetime, to_jsonable_type_loader=format_iso, from_jsonable_type_loader=parse_iso)
 
 
 class Model(AbstractModel):
