@@ -48,6 +48,7 @@ class AbstractJsonModelKey:
         self.default = default
         self.load_to_jsonable_type = load_to_jsonable_type
         self.load_from_jsonable_type = load_from_jsonable_type
+        self.value = None
         self.name = None
         self.set_model_defaults()
 
@@ -71,18 +72,16 @@ class AbstractJsonModelKey:
 class AbstractJsonModel(ABC):
     _model_key_map = {}
 
-    @property
-    def __key_map(self) -> Generator[Tuple[str, AbstractJsonModelKey], None, None]:
+    def get_key_map(self) -> Generator[Tuple[str, AbstractJsonModelKey], None, None]:
         for name, key in self._model_key_map[type(self)].items():
             yield name, key
 
-    @property
-    def __keys(self) -> Generator[AbstractJsonModelKey, None, None]:
-        for _, key in self.__key_map:
+    def get_keys(self) -> Generator[AbstractJsonModelKey, None, None]:
+        for _, key in self.get_key_map():
             yield key
 
     def __init__(self, **kwargs):
-        for key in self.__keys:
+        for key in self.get_keys():
             if key.name in kwargs:
                 value = kwargs[key.name]
                 if value and key.can_load_from_jsonable_type:
@@ -90,6 +89,7 @@ class AbstractJsonModel(ABC):
             else:
                 value = key.default
             setattr(self, key.name, value)
+            key.value = value
 
     def __init_subclass__(cls, **kwargs):
         cls._model_key_map[cls] = {}
@@ -99,7 +99,7 @@ class AbstractJsonModel(ABC):
                 cls._model_key_map[cls][name] = attribute
 
     def __iter__(self):
-        for key in self.__keys:
+        for key in self.get_keys():
             value = getattr(self, key.name)
             if value and key.can_load_to_jsonable_type:
                 yield key.name, key.load_to_jsonable_type(value)
