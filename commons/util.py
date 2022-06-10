@@ -9,9 +9,9 @@ def merge_lists(*args):
     return result
 
 
-def safe_cast(value, type_, return_exception: bool = True, default_return: Any = None):
+def safe_cast(value, type_, return_exception: bool = False, default_return: Any = None):
     try:
-        type_(value)
+        return type_(value)
     except Exception as e:
         if return_exception:
             return e
@@ -19,12 +19,20 @@ def safe_cast(value, type_, return_exception: bool = True, default_return: Any =
             return default_return
 
 
-def get_attributes(cls, include_private=False, include_dunder=False, include_callables=False):
+def get_attributes(
+        cls,
+        include_private=False,
+        include_dunder=False,
+        include_callables=False,
+        include_base=True
+):
     for name in dir(cls):
         if not include_dunder and name.startswith('__'):
             continue
         if not include_private and name.startswith('_'):
             continue
+        if not include_base:
+            pass
         attr = getattr(cls, name)
         if not include_callables and callable(attr):
             continue
@@ -32,12 +40,16 @@ def get_attributes(cls, include_private=False, include_dunder=False, include_cal
 
 
 def empty_list_if_none(o):
-    if o is None:
-        return []
-    return o
+    return this_if_none(o, [])
 
 
 def empty_dict_if_none(o):
-    if o is None:
-        return {}
-    return o
+    return this_if_none(o, {})
+
+
+def this_if_none(o, this, else_=None):
+    if else_ is None:
+        else_ = o
+    return this if o is None else else_
+
+

@@ -1,29 +1,35 @@
-from commons.helpers.datetime import now
-from commons.daos.json_index import AbstractJsonIndexModel, AbstractJsonIndexModelsDict
+from datetime import datetime
+
+from commons import now, parse_iso, format_iso
+from commons.daos.json_index.model import Key, AbstractModel, set_default_jsonable_fns
 
 
-class Employees(AbstractJsonIndexModelsDict):
-    pass
+set_default_jsonable_fns(datetime, to_jsonable=format_iso, from_jsonable=parse_iso)
 
 
-class Employee(AbstractJsonIndexModel):
-    def __init__(self, name, age, has_reporters=False):
-        super().__init__()
-        self.name = name
-        self.age = age
-        self.updated_at = now()
-        if has_reporters:
-            self.reporters = Employees()
+class Model(AbstractModel):
+    created_at = Key(datetime, default=now())
+    updated_at = Key(datetime, default=now())
 
 
-def test_model():
-    amir = Employee('Amir', 22, True)
-    jack = Employee('Jack', 24)
-    amir.reporters.source[jack.name] = jack
-    d = dict(amir)
+class TouchPoint(Model):
+    value = Key(str)
 
-    assert d['name'] == 'Amir'
-    assert d['age'] == 22
-    assert 'Jack' in d['reporters']
-    assert d['reporters']['Jack']['name'] == 'Jack'
-    assert d['reporters']['Jack']['age'] == 24
+
+class TouchPoints(AbstractModel):
+    initial_connection = Key(TouchPoint)
+    initial_connection_accepted = Key(TouchPoint)
+
+
+class Recruiter(Model):
+    name = Key(str)
+    company = Key(str)
+    touchpoints = Key(TouchPoints)
+
+
+def test_it_works():
+    recruiter = Recruiter()
+    d = dict(recruiter)
+    r = Recruiter(**d)
+    print(d)
+    print(r)

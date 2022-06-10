@@ -8,9 +8,9 @@ def now(tz: Optional[timezone] = None):
     return datetime.now(tz)
 
 
-def format_iso_dt(dt: datetime):
+def format_iso(dt: datetime):
     return dt.isoformat()
 
 
-def parse_iso_dt(s: str):
+def parse_iso(s: str):
     return datetime.fromisoformat(s)
