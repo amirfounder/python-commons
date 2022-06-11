@@ -1,37 +1,32 @@
 from datetime import datetime
+from typing import Optional
 
-from commons import now, parse_iso, format_iso
-from commons.daos.json_index.model import JsonModelKey as Key, AbstractJsonModel as AbstractModel, set_default_jsonable_loaders
-
-
-set_default_jsonable_loaders(datetime, to_jsonable_type_loader=format_iso, from_jsonable_type_loader=parse_iso)
+from commons.daos import AbstractJsonModel
+from commons.daos.json_index import AbstractJsonIndex
 
 
-class Model(AbstractModel):
-    map = {
-        'created_at': Key(datetime, default=now()),
-        'updated_at': Key(datetime, default=now())
-    }
+class Index(AbstractJsonIndex):
+    pass
 
 
-class TouchPoint(Model):
-    value = Key(str)
+class Recruiter(AbstractJsonModel):
+    name: Optional[str]
+    company: Optional[str]
+    headline: Optional[str]
+    username: Optional[str]
+    last_contacted: Optional[datetime]
 
 
-class TouchPoints(AbstractModel):
-    initial_connection = Key(TouchPoint)
-    initial_connection_accepted = Key(TouchPoint)
+class Company(AbstractJsonModel):
+    name: str
+    url: str
 
 
-class Recruiter(Model):
-    name = str
-    company = Key(str)
-    touchpoints = Key(TouchPoints)
+def test_index_model_works():
+    index = Index()
+    index['amir'] = Recruiter(name='Amir', company=None, headline=None, username=None, last_contacted=None)
+    index['dior'] = Recruiter(name='Dior', company=None, headline=None, username=None, last_contacted=None)
 
-
-def test_it_works():
-    recruiter = Recruiter()
-    d = dict(recruiter)
-    r = Recruiter(**d)
-    print(d)
-    print(r)
+    j = index.json()
+    i = Index.parse_raw(j)
+    print(i)

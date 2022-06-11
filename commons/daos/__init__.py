@@ -1,1 +1,1 @@
-from .json_index import AbstractJsonIndex
+from .json_index import *

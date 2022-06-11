@@ -1,2 +1,1 @@
-from .index import *
-from .model import *
+from .v2 import *

@@ -1,7 +1,7 @@
-from commons.helpers.classes import ClassRegistry
+from commons.helpers.classes import TypeRegistry
 
-def test_class_registry():
-    registry = ClassRegistry()
+def test_type_registry():
+    registry = TypeRegistry()
 
     class Number:
         pass
