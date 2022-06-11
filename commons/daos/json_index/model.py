@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, Union, Optional, Type, Callable
 
-from commons.utils import get_attributes, unique_type_set_from_list, this_if_none
+from commons.utils import get_attributes, unique_type_set_from_list
 from commons.helpers import json, parse_iso, format_iso
 from commons.mixins import Mapping
 
@@ -12,23 +12,21 @@ _DEFAULT_ENCODERS_DECODERS = [
 ]
 
 
-class CodecModelKeyFactory:
-    def __init__(self, codec):
-        self.codec = codec
-        self.type_map = (
-            ({list, set, tuple}, CodecModelIterKey),
-            ({dict}, CodecModelDictKey)
-        )
+def isiter(o: Union[type, list, tuple, set]):
+    return (o if isinstance(o, type) else type(o)) in {list, tuple, set}
 
-    def create(self, cls, key, value):
-        value_type = type(value)
-        default_model_key = CodecModelKey
 
-        for value_type_set, model_key in self.type_map:
-            if value_type in value_type_set:
-                return model_key(cls, key, value)
+def isdict(o: Union[type, dict]):
+    return (o if isinstance(o, type) else type(o)) in {dict}
 
-        return default_model_key(cls, key, value_type)
+
+def create_codec_model_key(cls, key, value):
+    vt = type(value)
+    if isiter(vt):
+        return CodecModelIterKey(cls, key, value)
+    if isdict(vt):
+        return CodecModelDictKey(cls, key, value)
+    return CodecModelKey(cls, key, vt)
 
 
 class Codec(Mapping, key='_codec'):
@@ -36,7 +34,6 @@ class Codec(Mapping, key='_codec'):
         self._codec: Dict[Type, CodecModel] = {}
         self.encoders: Dict[Type, Callable] = {}
         self.decoders: Dict[Type, Callable] = {}
-        self.model_key_factory = CodecModelKeyFactory(self)
 
     def load_default_encoders_decoders(self):
         for type_, encoder, decoder in _DEFAULT_ENCODERS_DECODERS:
@@ -45,7 +42,7 @@ class Codec(Mapping, key='_codec'):
     def get_codec_model_key(self, cls, key, value) -> Optional[CodecModelKey]:
         if codec_model := self.get(cls):
             if key not in codec_model:
-                codec_model[key] = _codec.model_key_factory.create(cls, key, value)
+                codec_model[key] = create_codec_model_key(cls, key, value)
             return codec_model[key]
 
     def get_encoder(self, type_: Type, key: str):
@@ -94,7 +91,7 @@ class CodecModel(Mapping, key='keys'):
         self.keys = {}
 
     def register(self, cls, key, value):
-        self[key] = _codec.model_key_factory.create(cls, key, value)
+        self[key] = create_codec_model_key(cls, key, value)
 
 
 class CodecModelKey:
@@ -116,7 +113,7 @@ class CodecModelIterKey:
         self.cls = cls
         self.key = key
         self.decoded_iter_type = type(iter_)
-        self.codec_model_key = _codec.model_key_factory.create(type(iter_), None, next(iter(iter_), None))
+        self.codec_model_key = create_codec_model_key(type(iter_), None, next(iter(iter_), None))
 
     @staticmethod
     def validate_iter(list_):
