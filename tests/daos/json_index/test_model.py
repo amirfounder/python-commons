@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel
 
-from commons.daos import AbstractJsonModel
 from commons.daos.json_index import AbstractJsonIndex
 
 
@@ -9,7 +9,7 @@ class Index(AbstractJsonIndex):
     pass
 
 
-class Recruiter(AbstractJsonModel):
+class Recruiter(BaseModel):
     name: Optional[str]
     company: Optional[str]
     headline: Optional[str]
@@ -17,7 +17,7 @@ class Recruiter(AbstractJsonModel):
     last_contacted: Optional[datetime]
 
 
-class Company(AbstractJsonModel):
+class Company(BaseModel):
     name: str
     url: str
 

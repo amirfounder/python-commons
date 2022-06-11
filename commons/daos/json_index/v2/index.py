@@ -2,11 +2,9 @@ from abc import ABC
 
 from pydantic import BaseModel
 
-from .model import AbstractJsonModel
-
 
 class AbstractJsonIndex(BaseModel, ABC):
-    source: dict[str, AbstractJsonModel] = {}
+    source: dict[str, BaseModel] = {}
 
     def __contains__(self, item):
         return item in self.source

@@ -2,3 +2,4 @@
 2022-06-11T23:27:36.888770+00:00        ENV: NONE      PID: 16216          THREAD: MainThread                                   LEVEL: ERROR          This is a test
 2022-06-11T23:27:57.915947+00:00        ENV: NONE      PID: 25520          THREAD: MainThread                                   LEVEL: ERROR          This is a test
 2022-06-11T23:28:24.871423+00:00        ENV: NONE      PID: 6204           THREAD: MainThread                                   LEVEL: ERROR          This is a test
+2022-06-11T23:32:02.579316+00:00        ENV: NONE      PID: 15540          THREAD: MainThread                                   LEVEL: ERROR          This is a test
