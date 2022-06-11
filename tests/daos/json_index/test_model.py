@@ -1,15 +1,17 @@
 from datetime import datetime
 
 from commons import now, parse_iso, format_iso
-from commons.daos.json_index.model import AbstractJsonModelKey as Key, AbstractJsonModel as AbstractModel, set_default_jsonable_loaders
+from commons.daos.json_index.model import JsonModelKey as Key, AbstractJsonModel as AbstractModel, set_default_jsonable_loaders
 
 
 set_default_jsonable_loaders(datetime, to_jsonable_type_loader=format_iso, from_jsonable_type_loader=parse_iso)
 
 
 class Model(AbstractModel):
-    created_at = Key(datetime, default=now())
-    updated_at = Key(datetime, default=now())
+    map = {
+        'created_at': Key(datetime, default=now()),
+        'updated_at': Key(datetime, default=now())
+    }
 
 
 class TouchPoint(Model):
@@ -22,7 +24,7 @@ class TouchPoints(AbstractModel):
 
 
 class Recruiter(Model):
-    name = Key(str)
+    name = str
     company = Key(str)
     touchpoints = Key(TouchPoints)
 

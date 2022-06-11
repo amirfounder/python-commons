@@ -18,23 +18,7 @@ def set_default_jsonable_loaders(
     DEFAULT_FROM_JSONABLE_FNS[type_] = from_jsonable_type_loader
 
 
-def is_model_type(o: type):
-    return issubclass(o, AbstractJsonModel)
-
-
-def is_model(o):
-    return isinstance(o, AbstractJsonModel)
-
-
-def is_key_type(o: type):
-    return issubclass(o, AbstractJsonModelKey)
-
-
-def is_key(o):
-    return isinstance(o, AbstractJsonModelKey)
-
-
-class AbstractJsonModelKey:
+class JsonModelKey:
     @property
     def can_load_to_jsonable_type(self):
         return self.load_to_jsonable_type is not None
@@ -53,30 +37,30 @@ class AbstractJsonModelKey:
         self.set_model_defaults()
 
     def set_model_defaults(self):
-        if is_model_type(self.type) and not self.default:
+        if issubclass(self.type, AbstractJsonModel) and not self.default:
             self.default = self.type()
 
         if not self.load_to_jsonable_type:
             if self.type in DEFAULT_TO_JSONABLE_FNS:
                 self.load_to_jsonable_type = DEFAULT_TO_JSONABLE_FNS[self.type]
-            if is_model_type(self.type):
+            if issubclass(self.type, AbstractJsonModel):
                 self.load_to_jsonable_type = lambda o: dict(o)
 
         if not self.load_from_jsonable_type:
             if self.type in DEFAULT_FROM_JSONABLE_FNS:
                 self.load_from_jsonable_type = DEFAULT_FROM_JSONABLE_FNS[self.type]
-            if is_model_type(self.type):
+            if issubclass(self.type, AbstractJsonModel):
                 self.load_from_jsonable_type = lambda o: self.type(**o)
 
 
 class AbstractJsonModel(ABC):
     _model_key_map = {}
 
-    def get_key_map(self) -> Generator[Tuple[str, AbstractJsonModelKey], None, None]:
+    def get_key_map(self) -> Generator[Tuple[str, JsonModelKey], None, None]:
         for name, key in self._model_key_map[type(self)].items():
             yield name, key
 
-    def get_keys(self) -> Generator[AbstractJsonModelKey, None, None]:
+    def get_keys(self) -> Generator[JsonModelKey, None, None]:
         for _, key in self.get_key_map():
             yield key
 
@@ -94,7 +78,7 @@ class AbstractJsonModel(ABC):
     def __init_subclass__(cls, **kwargs):
         cls._model_key_map[cls] = {}
         for name, attribute in get_attributes(cls):
-            if is_key(attribute):
+            if isinstance(attribute, JsonModelKey):
                 attribute.name = name
                 cls._model_key_map[cls][name] = attribute
 

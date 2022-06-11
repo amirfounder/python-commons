@@ -28,10 +28,10 @@ class AbstractJsonIndex(ABC):
             self.flush()
 
     def get(self, key, default=None):
-        res = self.source.get(key, default)
+        result = self.source.get(key, default)
         if self.model:
-            res = self.model(**res)
-        return res
+            result = self.model(**result)
+        return result
 
     def all(self):
         for k, v in self.source:
