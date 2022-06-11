@@ -1,1 +1,2 @@
-from .index import AbstractJsonIndex
+from .index import JsonIndex
+from .models import JsonIndexModel
