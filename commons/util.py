@@ -52,4 +52,5 @@ def this_if_none(o, this, else_=None):
         else_ = o
     return this if o is None else else_
 
-
+def unique_type_set_from_list(list_: list):
+    return set([type(o) for o in list_])

@@ -2,54 +2,33 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Type, Dict, Callable
+from typing import Type, Dict, Callable, Optional, Union
 
-from commons import format_iso, parse_iso, get_attributes, now, safe_cast, this_if_none
+from commons import format_iso, parse_iso, get_attributes, now, this_if_none, unique_type_set_from_list
 from commons.mixins import FluidModel, MappingModel
 
 '''
-
-LOGIC: 
-
-# CodecModelKey
-class Codec:
-    def __init__(self):
-        self._codec = {}
-        
-    def encode(self, model_class, key, value):
-        value_type = type(value)
-        if codec_model := self._codec[model_class]:
-            return codec_model.encode(value)
-        return value
-
-class CodecModel:
-    def encode(self, key, value):
-        value_type = type(value)
-        if codec_model_key := self._keys[key]:
-            return codec_model.encode(value)
-        return value
-        
-class CodecModelKey:
-    def encode(value):
-        kwargs: {
-            'prev_key': 'self',
-            'value': 'value'
-        }
-        if self.type is not list:
-            kwargs.pop('prev_key')
-        self.model_ref.encode(value)
-
-
-
 Codec = Codec(
     Recruiter: CodecModel(
         encoder: '...',
         decoder: '...',
         keys: {
-            'age': CodecModelKey(int, encoder=None),
-            'name': CodecModelKey(str, encode=None),
-            'dog': CodecModelKey(Dog, encode=Codec[Dog].encode),
-            'dogs': CodecModelKey(list, encoder=Codec[list].encode)
+            'age': CodecModelKey(int, ...),
+            'name': CodecModelKey(str, ...),
+            'dog': CodecModelKey(Dog, encoder=Codec[Dog].encoder, ...),
+            'dogs': CodecModelIterKey(
+                type = list
+                child_type = CodecModelKey(type=Dog,encoder=Codec[Dog].encoder, ...)
+                encoder = Encoder
+            )
+            'map': CodecModelDictKey(
+                type = dict
+                encode=lambda o: {k:v for k,v, in self.items()}
+                keys = {
+                    'yes': CodecModelKey(),
+                    'no': CodecModelKey()
+                }
+            )
         }
     ),
     Dog: CodecModel(
@@ -68,29 +47,32 @@ Codec = Codec(
 '''
 
 
-class EncoderRegistry:
+class EncoderRegistry(MappingModel, key='_encoders'):
     _encoders: Dict[Type, Callable] = {
         datetime: format_iso,
-        dict: lambda o: {k: safe_cast(v, dict) for k, v in o.items()},
     }
 
-    def get_encoder(self, klass):
-        return self._encoders.get(klass)
 
-    def register_encoder(self, klass, encoder):
-        self._encoders[klass] = encoder
-
-
-class DecoderRegistry:
+class DecoderRegistry(MappingModel, key='_decoders'):
     _decoders: Dict[Type, Callable] = {
         datetime: parse_iso
     }
 
-    def get_decoder(self, klass):
-        return self._decoders.get(klass)
 
-    def register_decoder(self, klass, decoder):
-        self._decoders[klass] = decoder
+class CodecModelKeyFactory:
+    def __init__(self, codec):
+        self.codec = codec
+        self.type_map = (
+            ({list, set, tuple}, CodecModelIterKey),
+            ({dict}, CodecModelDictKey)
+        )
+    
+    def create(self, cls, key, value):
+        value_type = type(value)
+        for value_type_set, constructor in self.type_map:
+            if value_type in value_type_set:
+                return constructor(cls, key, value)
+        return CodecModelKey(cls, key, value_type)
 
 
 class Codec(MappingModel, key='_codec'):
@@ -98,47 +80,84 @@ class Codec(MappingModel, key='_codec'):
         self._codec = {}
         self.encoders = EncoderRegistry()
         self.decoders = DecoderRegistry()
+        self.model_key_factory = CodecModelKeyFactory(self)
 
-    def _get_codec_model_key(self, cls, key, value_type) -> CodecModelKey:
-        if cls not in self._codec:
-            self._codec[cls] = {}
-
-        codec_model = self._codec[cls]
-
-        if key not in codec_model:
-            codec_model[key] = CodecModelKey(cls, key, value_type)
-
-        return codec_model[key]
+    def _get_codec_model_key(self, cls, key, value) -> Optional[CodecModelKey]:
+        if codec_model := self.get(cls):
+            if key not in codec_model:
+                codec_model[key] = _codec.model_key_factory.create(cls, key, value)
+            return codec_model[key]
 
     def encode(self, cls, key, value):
-        if encode := self._get_codec_model_key(cls, key, type(value)).encoder:
-            return encode(value)
+        if (cm_key := self._get_codec_model_key(cls, key, value)) and cm_key.encoder:
+            return cm_key.encoder(value)
         return value
 
-    @staticmethod
-    def decode(cls, key, value):
+    def decode(self, cls, key, value):
+        if (cm_key := self._get_codec_model_key(cls, key, value)) and cm_key.decoder:
+            return cm_key.decoder(value)
         return value
+
+    def register(self, cls, encoder, decoder):
+        self[cls] = CodecModel(cls, encoder, decoder)
 
 
 class CodecModel(MappingModel, key='keys'):
-    __slots__ = ('type', 'encoder', 'decoder', 'keys')
+    __slots__ = ('cls', 'encoder', 'decoder', 'keys')
 
-    def __init__(self, type_, encoder, decoder, keys=None):
-        self.type = type_
+    def __init__(self, cls, encoder, decoder, keys=None):
+        self.cls = cls
         self.encoder = encoder
-        self.decoder = decoder,
+        self.decoder = decoder
         self.keys = this_if_none(keys, {})
+
+    def register(self, cls, key, value):
+        self[key] = _codec.model_key_factory.create(cls, key, value)
 
 
 class CodecModelKey:
-    __slots__ = ('cls', 'key', 'type', 'encoder', 'decoder')
+    __slots__ = ('cls', 'key', 'value_type', 'encoder', 'decoder')
     
-    def __init__(self, cls, key, type_):
+    def __init__(self, cls, key, value_type):
         self.cls = cls
         self.key = key
-        self.type = type_
+        self.value_type = value_type
         self.encoder = None
         self.decoder = None
+        self.register_encoder_decoder()
+
+    def register_encoder_decoder(self):
+        if codec_model := _codec.get(self.value_type):
+            self.encoder = codec_model.encoder
+            self.decoder = codec_model.decoder
+
+
+class CodecModelIterKey:
+    __slots__ = ('cls', 'key', 'decoded_iter_type', 'decoded_iter_is_empty', 'codec_model_key', 'type')
+
+    def __init__(self, cls, key, iter_: Union[list, set, tuple]):
+        self.validate_iter(iter_)
+        self.cls = cls
+        self.key = key
+        self.decoded_iter_type = type(iter_)
+        self.codec_model_key = _codec.model_key_factory.create(type(iter_), None, next(iter(iter_), None))
+    
+    @staticmethod
+    def validate_iter(list_):
+        if len(unique_type_set_from_list(list_)) > 2:
+            raise Exception('Cannot have more than 1 type in JSONEncodeable list')
+
+    def encoder(self, value):
+        return [self.codec_model_key.encoder(item) for item in value]
+
+    def decoder(self, value):
+        res = [self.codec_model_key.decoder(item) for item in value]
+        return self.decoded_iter_type(res)
+
+
+class CodecModelDictKey:
+    def __init__(self, cls, key, value):
+        pass
 
 
 _codec = Codec()
@@ -147,11 +166,10 @@ _codec = Codec()
 class JsonEncodeable:
     def __init_subclass__(cls, **kwargs):
         if cls not in _codec:
-            _codec[cls] = CodecModel(cls, cls.to_dict, cls.from_dict, {})
+            _codec.register(cls, cls.to_dict, cls.from_dict)
 
     def to_dict(self):
-        obj = {}
-        cls = type(self)
+        obj, cls = {}, type(self)
         for key, value in get_attributes(self):
             obj[key] = _codec.encode(cls, key, value)
         return obj
