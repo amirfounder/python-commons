@@ -8,78 +8,71 @@ from typing import Type, Dict, Callable
 from commons import format_iso, parse_iso, get_attributes, now, safe_cast
 
 
-def encode_list(klass: Type, list_: list):
-    return [ModelToDictCodec.encode(klass, float('inf'), v) for v in list_]
+'''
+
+LOGIC: 
+
+# CodecModelKey
+class Codec:
+    def __init__(self):
+        self._codec = {}
+        
+    def encode(self, model_class, key, value):
+        value_type = type(value)
+        if codec_model := self._codec[model_class]:
+            return codec_model.encode(value)
+        return value
+
+class CodecModel:
+    def encode(self, key, value):
+        value_type = type(value)
+        if codec_model_key := self._keys[key]:
+            return codec_model.encode(value)
+        return value
+        
+class CodecModelKey:
+    def encode(value):
+        kwargs: {
+            'prev_key': 'self',
+            'value': 'value'
+        }
+        if self.type is not list:
+            kwargs.pop('prev_key')
+        self.model_ref.encode(value)
 
 
-"""
-CODEC = {
-    Recruiter: ModelKey(**{
-        'encoder',
-        'decoder',
-        'keys': {
-            'age': int,
-            'name': str,
-            'dogs': (list, Dog),
-            'cat': Cat
-        }
-    }),
-    (list, Dog): ModelKey(**{
-        'encoder',
-        'decoder',
-        'keys': {
-            'age': int,
-            'name': name,
-            'leash': Leash
-        }
-    }),
-    Cat: ...,
-    Leash: ...
-}
 
-CODEC = {
-    Recruiter: ModelKey(**{
-        'encoder',
-        'decoder',
-        'vt': Recruiter,
-        'keys': {
-            'age': ModelKey(**{
-                'encoder',
-                'decoder',
-                'vt': int,
-                'keys': {},
-            }),
-            'name': ModelKey(**{
-                'encoder',
-                'decoder',
-                'vt': str,
-                'keys': {},
-            }),
-            'dogs': ModelKey(**{
-                'encoder',
-                'decoder',
-                'vt': (list, list, Dog),
-                'keys': {}
-            })
+Codec = Codec(
+    Recruiter: CodecModel(
+        encoder: '...',
+        decoder: '...',
+        keys: {
+            'age': CodecModelKey(int, encoder=None),
+            'name': CodecModelKey(str, encode=None),
+            'dog': CodecModelKey(Dog, encode=Codec[Dog].encode),
+            'dogs': CodecModelKey(list, encoder=Codec[list].encode)
         }
-    }),
-    Dog: {
-        'encoder',
-        'decoder',
-    },
-    Leash: {
-        'encoder',
-        'decoder',
-    }
-}
-"""
+    ),
+    Dog: CodecModel(
+        encoder: '...',
+        decoder: '...',
+        keys: {...}
+    ),
+    list: CodecModel(
+        encoder: lambda prev_key, model: ...,
+        decoder: lambda prev_key, obj: ...,
+    ),
+    dict: CodecModel(
+        encoder: ...
+    )
+)
+'''
 
 
 class EncoderRegistry:
     _encoders: Dict[Type, Callable] = {
         datetime: format_iso,
         dict: lambda o: {k: safe_cast(v, dict) for k, v in o.items()},
-        list: encode_list
     }
 
     @classmethod
@@ -106,18 +99,31 @@ class DecoderRegistry:
 
 
 class ModelToDictCodec:
-    _codec: Dict[Type, Dict[str, ModelKey]] = defaultdict(dict)
+    _codec: Dict[Type, CodecModel] = defaultdict(dict)
 
     @classmethod
-    def encode(cls, klass, key, value):
+    def _encode(cls, klass, key, value):
         model_key = ModelKey(klass, key, type(value))
         cls._codec[klass][key] = model_key
         return model_key.encode(value)
 
     @classmethod
+    def encode(cls, value):
+        if encoder := EncoderRegistry.get_encoder(type(value)):
+            return encoder(value)
+
+    @classmethod
     def decode(cls, klass, key, value):
         model_key = cls._codec[klass][key]
         return model_key.decode(value)
+
+    @classmethod
+    def register_model(cls, klass):
+        pass
+
+    @classmethod
+    def register_key(cls, klass, key, value_type):
+        pass
 
 
 class ModelKey:
@@ -133,6 +139,15 @@ class ModelKey:
 
     def decode(self, value):
         return self.decoder(value) if self.decoder else value
+
+
+class CodecModel:
+    __slots__ = ('encoder', 'decoder', 'keys')
+
+    def __init__(self, encoder, decoder, keys):
+        self.encoder = encoder
+        self.decoder = decoder,
+        self.keys = keys
 
 
 class JsonEncodeable:
@@ -164,6 +179,8 @@ class JsonEncodeable:
 class FluidModel:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
+            if hasattr(self, '__slots__') and k not in getattr(self, '__slots__'):
+                continue
             setattr(self, k, v)
 
 
