@@ -5,8 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Type, Dict, Callable
 
-from commons import format_iso, parse_iso, get_attributes, now, safe_cast
-
+from commons import format_iso, parse_iso, get_attributes, now, safe_cast, this_if_none
 
 '''
 
@@ -75,13 +74,11 @@ class EncoderRegistry:
         dict: lambda o: {k: safe_cast(v, dict) for k, v in o.items()},
     }
 
-    @classmethod
-    def get_encoder(cls, klass):
-        return cls._encoders.get(klass)
+    def get_encoder(self, klass):
+        return self._encoders.get(klass)
 
-    @classmethod
-    def register_encoder(cls, klass, encoder):
-        cls._encoders[klass] = encoder
+    def register_encoder(self, klass, encoder):
+        self._encoders[klass] = encoder
 
 
 class DecoderRegistry:
@@ -89,76 +86,106 @@ class DecoderRegistry:
         datetime: parse_iso
     }
 
-    @classmethod
-    def get_decoder(cls, klass):
-        return cls._decoders.get(klass)
+    def get_decoder(self, klass):
+        return self._decoders.get(klass)
 
-    @classmethod
-    def register_decoder(cls, klass, decoder):
-        cls._decoders[klass] = decoder
+    def register_decoder(self, klass, decoder):
+        self._decoders[klass] = decoder
 
 
-class ModelToDictCodec:
-    _codec: Dict[Type, CodecModel] = defaultdict(dict)
+class KeyAccessible:
+    def __init_subclass__(cls, **kwargs):
+        key = kwargs.get('key')
+        if not key:
+            raise Exception('Cannot use "KeyAccessibleMixin" without specifying "key"')
+        if not isinstance(key, str):
+            raise Exception(f'Invalid type for key. Expected: <str>. Got: <{type(key).__name__}>')
+        cls.__key = key
 
-    @classmethod
-    def _encode(cls, klass, key, value):
-        model_key = ModelKey(klass, key, type(value))
-        cls._codec[klass][key] = model_key
-        return model_key.encode(value)
+    @property
+    def __access_attr(self):
+        if hasattr(self, self.__key):
+            return getattr(self, self.__key)
+        raise Exception(f'Object <{type(self).__name__}> has no attribute, "{self.__key}". (Defined on inheritance)')
 
-    @classmethod
-    def encode(cls, value):
-        if encoder := EncoderRegistry.get_encoder(type(value)):
-            return encoder(value)
+    def __contains__(self, item):
+        return item in self.__access_attr
 
-    @classmethod
-    def decode(cls, klass, key, value):
-        model_key = cls._codec[klass][key]
-        return model_key.decode(value)
+    def __getitem__(self, item):
+        return self.__access_attr[item]
 
-    @classmethod
-    def register_model(cls, klass):
-        pass
-
-    @classmethod
-    def register_key(cls, klass, key, value_type):
-        pass
+    def __setitem__(self, key, value):
+        self.__access_attr[key] = value
 
 
-class ModelKey:
-    __slots__ = ('klass', 'key', 'value_type', 'encoder', 'decoder')
+class Codec(KeyAccessible, key='codec'):
+    def __init__(self):
+        self.codec = {}
+        self.encoders = EncoderRegistry()
+        self.decoders = DecoderRegistry()
 
-    def __init__(self, klass, key, value_type):
-        self.klass, self.key, self.value_type = klass, key, value_type
-        self.encoder = EncoderRegistry.get_encoder(value_type)
-        self.decoder = DecoderRegistry.get_decoder(value_type)
+    def _get_codec_model_key(self, cls, key, value_type) -> CodecModelKey:
+        if cls not in self.codec:
+            self.codec[cls] = {}
 
-    def encode(self, value):
-        return self.encoder(value) if self.encoder else value
+        codec_model = self.codec[cls]
 
-    def decode(self, value):
-        return self.decoder(value) if self.decoder else value
+        if key not in codec_model:
+            codec_model[key] = CodecModelKey(cls, key, value_type)
+
+        return codec_model[key]
+
+    def encode(self, cls, key, value):
+        if encode := self._get_codec_model_key(cls, key, type(value)).encoder:
+            return encode(value)
+        return value
+
+    def decode(self, cls, key, value):
+        return value
 
 
 class CodecModel:
-    __slots__ = ('encoder', 'decoder', 'keys')
+    __slots__ = ('type', 'encoder', 'decoder', 'keys')
 
-    def __init__(self, encoder, decoder, keys):
+    def __init__(self, type_, encoder, decoder, keys=None):
+        self.type = type_
         self.encoder = encoder
         self.decoder = decoder,
-        self.keys = keys
+        self.keys = this_if_none(keys, {})
+
+    def __contains__(self, item):
+        return item in self.keys
+
+    def __getitem__(self, item):
+        return self.keys[item]
+
+    def __setitem__(self, key, value):
+        self.keys[key] = value
+
+
+class CodecModelKey:
+    __slots__ = ('cls', 'key', 'type', 'encoder', 'decoder')
+    
+    def __init__(self, cls, key, type_):
+        self.cls = cls
+        self.key = key
+        self.type = type_
+        self.encoder = None
+        self.decoder = None
+
+
+codec = Codec()
 
 
 class JsonEncodeable:
     def __init_subclass__(cls, **kwargs):
-        EncoderRegistry.register_encoder(cls, cls.to_dict)
-        DecoderRegistry.register_decoder(cls, cls.from_dict)
+        codec.codec[cls] = CodecModel(cls, cls.to_dict, cls.from_dict, {})
 
     def to_dict(self):
         obj = {}
+        cls = type(self)
         for key, value in get_attributes(self):
-            obj[key] = ModelToDictCodec.encode(type(self), key, value)
+            obj[key] = codec.encode(cls, key, value)
         return obj
 
     def to_json(self):
@@ -168,7 +195,7 @@ class JsonEncodeable:
     def from_dict(cls, obj: Dict):
         self = cls()
         for key, value in obj.items():
-            setattr(self, key, ModelToDictCodec.decode(cls, key, value))
+            setattr(self, key, codec.decode(cls, key, value))
         return self
 
     @classmethod
