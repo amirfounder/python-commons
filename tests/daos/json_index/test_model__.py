@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Type, Dict, Callable, Optional, Union
 
 from commons import format_iso, parse_iso, get_attributes, now, this_if_none, unique_type_set_from_list
-from commons.mixins import FluidModel, MappingModel
+from commons.mixins import FluidInitializer, Mapping
 
 '''
 Codec = Codec(
@@ -47,13 +47,13 @@ Codec = Codec(
 '''
 
 
-class EncoderRegistry(MappingModel, key='_encoders'):
+class EncoderRegistry(Mapping, key='_encoders'):
     _encoders: Dict[Type, Callable] = {
         datetime: format_iso,
     }
 
 
-class DecoderRegistry(MappingModel, key='_decoders'):
+class DecoderRegistry(Mapping, key='_decoders'):
     _decoders: Dict[Type, Callable] = {
         datetime: parse_iso
     }
@@ -75,7 +75,7 @@ class CodecModelKeyFactory:
         return CodecModelKey(cls, key, value_type)
 
 
-class Codec(MappingModel, key='_codec'):
+class Codec(Mapping, key='_codec'):
     def __init__(self):
         self._codec = {}
         self.encoders = EncoderRegistry()
@@ -102,7 +102,7 @@ class Codec(MappingModel, key='_codec'):
         self[cls] = CodecModel(cls, encoder, decoder)
 
 
-class CodecModel(MappingModel, key='keys'):
+class CodecModel(Mapping, key='keys'):
     __slots__ = ('cls', 'encoder', 'decoder', 'keys')
 
     def __init__(self, cls, encoder, decoder, keys=None):
@@ -189,19 +189,19 @@ class JsonEncodeable:
         return cls.from_dict(json.loads(obj))
 
 
-class Recruiter(FluidModel, JsonEncodeable):
+class Recruiter(FluidInitializer, JsonEncodeable):
     pass
 
 
-class Pet(FluidModel, JsonEncodeable):
+class Pet(FluidInitializer, JsonEncodeable):
     pass
 
 
-class Dog(FluidModel, JsonEncodeable):
+class Dog(FluidInitializer, JsonEncodeable):
     pass
 
 
-class Cat(FluidModel, JsonEncodeable):
+class Cat(FluidInitializer, JsonEncodeable):
     pass
 
 

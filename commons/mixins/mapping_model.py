@@ -3,7 +3,7 @@ _KEY_INVALID_TYPE = 'Invalid type for key. Expected: <str>. Got: <{}>'
 _NO_MATCHING_ATTR = 'Object <{}> has no attribute, "{}". (Defined on inheritance)'
 
 
-class MappingModel:
+class Mapping:
     def __init_subclass__(cls, **kwargs):
         key = kwargs.get('key')
 

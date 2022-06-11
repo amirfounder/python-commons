@@ -3,7 +3,7 @@ from abc import ABC
 from datetime import datetime
 from typing import Callable, Any, Union, Type
 
-from commons.util import get_attributes
+from commons.utils import get_attributes
 from commons.helpers.datetime import format_iso, parse_iso, now
 
 
