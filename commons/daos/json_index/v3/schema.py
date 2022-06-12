@@ -2,7 +2,6 @@
 ModelSchema: {
     "Recruiter": {
         "type": "Recruiter",
-        "type": "object",
         "properties": {
             "name": {
                 "type": "int",
@@ -14,12 +13,24 @@ ModelSchema: {
             },
             "touchpoints": {
                 "type": "dict",
-                "default": {}
+                "default": {},
+                "key: {
+                    "type": "str"
+                },
+                "value": {
+                    "type": TouchPoint,
+                    "is_model": true
+                }
             }
         }
     },
     "TouchPoint": {
+        "type": "TouchPoint",
+        "properties": {
+            "contact": {
 
+            }
+        }
     }
 }
 """
