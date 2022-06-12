@@ -1,9 +1,14 @@
 from datetime import datetime
 from uuid import uuid4, UUID
 
+import orjson
 from pydantic import BaseModel, validator, Field
 
 from commons.helpers import now, format_iso, parse_iso
+
+
+def orjson_dumps(o, *, default):
+    return orjson.dumps(o, default=default).decode()
 
 
 class JsonIndexModel(BaseModel):
@@ -12,15 +17,14 @@ class JsonIndexModel(BaseModel):
     created_at: datetime = Field(default_factory=now)
 
     class Config:
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
         json_encoders = {
             datetime: format_iso,
-            UUID: lambda v: str(v)
+            UUID: str
         }
 
     @classmethod
-    @validator('*', pre=True)
+    @validator('updated_at', 'created_at', pre=True)
     def parse_datetimes(cls, value):
-        try:
-            return parse_iso(value)
-        except Exception:
-            return value
+        return parse_iso(value)

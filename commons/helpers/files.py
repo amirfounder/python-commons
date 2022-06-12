@@ -1,7 +1,7 @@
-import json
 from os import makedirs
 from os.path import exists
 from threading import Lock
+import orjson
 
 
 def format_exception_caught_message(e: Exception):
@@ -89,7 +89,7 @@ def safe_read_json_as_obj_from_file(path, default=None, log_on_exception=True, l
     result = safe_read_from_file(path, **kwargs)
 
     try:
-        result = json.loads(result)
+        result = orjson.loads(result)
     except Exception as e:
         result = default
         if log_on_exception:
@@ -99,9 +99,9 @@ def safe_read_json_as_obj_from_file(path, default=None, log_on_exception=True, l
     return result
 
 
-def safe_write_obj_as_json_to_file(path, dict_obj, indent=4, sort_keys=True, log_on_exception=True, log_fn=print):
+def safe_write_obj_as_json_to_file(path, dict_obj, log_on_exception=True, log_fn=print):
     try:
-        json_obj = json.dumps(dict_obj, indent=indent, sort_keys=sort_keys)
+        json_obj = orjson.dumps(dict_obj).decode()
         safe_write_to_file(path, json_obj, log_on_exception=log_on_exception, log_fn=log_fn)
 
     except Exception as e:

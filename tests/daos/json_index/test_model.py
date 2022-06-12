@@ -3,8 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from commons.daos.json_index import JsonIndexModel
-from commons.daos.json_index.v2.index import JsonIndexBuilder
+from commons.daos.json_index import JsonIndexModel, JsonIndex
 
 
 class Recruiter(JsonIndexModel):
@@ -24,14 +23,8 @@ K = TypeVar('K', bound=str)
 V = TypeVar('V', bound=Recruiter)
 
 
-index = JsonIndexBuilder()\
-        .set_model(Recruiter)\
-        .set_path('dummy-data/index.json')\
-        .set_configs({'flush_after_set': True})\
-        .build()
-
-
 def test_index_model_works():
+    index = JsonIndex(Recruiter, 'dummy-data/index.json', {'flush_after_set': True})
     preset_uuid = uuid.uuid4()
 
     index['amir'] = Recruiter(id=preset_uuid, name='Amir')
