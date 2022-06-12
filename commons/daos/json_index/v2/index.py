@@ -32,10 +32,6 @@ class JsonIndex:
         self.source = {}
         self.load()
 
-    @classmethod
-    def builder(cls):
-        return JsonIndexBuilder().set_model(cls)
-
     def __contains__(self, item):
         return item in self.source
 
