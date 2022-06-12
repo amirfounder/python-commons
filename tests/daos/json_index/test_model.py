@@ -29,7 +29,7 @@ class Index(JsonIndex[str, Recruiter]):
 
 
 def test_index_model_works():
-    index = Index()
+    index = Index.build()
     preset_uuid = uuid.uuid4()
 
     index['amir'] = Recruiter(id=preset_uuid, name='Amir')

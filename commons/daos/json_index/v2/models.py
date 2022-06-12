@@ -17,6 +17,9 @@ class JsonIndexModel(BaseModel):
         }
 
     @classmethod
-    @validator('updated_at', pre=True)
+    @validator('*', pre=True)
     def parse_datetimes(cls, value):
-        return parse_iso(value)
+        try:
+            return parse_iso(value)
+        except Exception:
+            return value
