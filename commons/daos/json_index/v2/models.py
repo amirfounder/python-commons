@@ -1,16 +1,22 @@
 from datetime import datetime
-from typing import Any
+from uuid import uuid4, UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, Field
 
-from commons.helpers import now
+from commons.helpers import now, format_iso, parse_iso
 
 
 class JsonIndexModel(BaseModel):
-    updated_at: datetime
-    created_at: datetime
+    id: UUID = Field(default_factory=uuid4)
+    updated_at: datetime = Field(default_factory=now)
+    created_at: datetime = Field(default_factory=now)
 
-    def __init__(self, **data: Any):
-        self.created_at = data.pop('created_at', now())
-        self.updated_at = data.pop('updated_at', now())
-        super().__init__(**data)
+    class Config:
+        json_encoders = {
+            datetime: format_iso
+        }
+
+    @classmethod
+    @validator('updated_at', pre=True)
+    def parse_datetimes(cls, value):
+        return parse_iso(value)

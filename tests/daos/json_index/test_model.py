@@ -1,15 +1,12 @@
+from __future__ import annotations
+import uuid
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel
+from typing import Optional, TypeVar
 
-from commons.daos.json_index import AbstractJsonIndex
-
-
-class Index(AbstractJsonIndex):
-    pass
+from commons.daos.json_index import JsonIndexModel, JsonIndex
 
 
-class Recruiter(BaseModel):
+class Recruiter(JsonIndexModel):
     name: Optional[str]
     company: Optional[str]
     headline: Optional[str]
@@ -17,16 +14,28 @@ class Recruiter(BaseModel):
     last_contacted: Optional[datetime]
 
 
-class Company(BaseModel):
+class Company(JsonIndexModel):
     name: str
     url: str
 
 
+K = TypeVar('K', bound=str)
+V = TypeVar('V', bound=Recruiter)
+
+
+class Index(JsonIndex[str, Recruiter]):
+    pass
+
+
 def test_index_model_works():
     index = Index()
-    index['amir'] = Recruiter(name='Amir', company=None, headline=None, username=None, last_contacted=None)
-    index['dior'] = Recruiter(name='Dior', company=None, headline=None, username=None, last_contacted=None)
+    preset_uuid = uuid.uuid4()
+
+    index['amir'] = Recruiter(id=preset_uuid, name='Amir')
+    index['dior'] = Recruiter(name='Dior')
 
     j = index.json()
     i = Index.parse_raw(j)
+
+    assert i.source['amir'].id == preset_uuid
     print(i)

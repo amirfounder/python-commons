@@ -1,18 +1,26 @@
-from pydantic import BaseModel
+from typing import Generic, TypeVar, Optional
+
+from pydantic import BaseModel, Field
+from pydantic.generics import GenericModel
+
 from .models import JsonIndexModel
 
 
-class JsonIndex(BaseModel):
-    source: dict[str, JsonIndexModel] = {}
+_K = TypeVar('_K')
+_V = TypeVar('_V')
 
-    def __contains__(self, item):
+
+class JsonIndex(GenericModel, Generic[_K, _V]):
+    source: dict[_K, _V] = Field(default={})
+
+    def __contains__(self, item) -> bool:
         return item in self.source
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> _V:
         return self.source[item]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self.source[key] = value
 
-    def get(self, key, default=None):
+    def get(self, key, default=None) -> Optional[_V]:
         return self.source.get(key, default)
