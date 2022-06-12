@@ -24,7 +24,8 @@ V = TypeVar('V', bound=Recruiter)
 
 
 class Index(JsonIndex[str, Recruiter]):
-    pass
+    _source_path = 'dummy-data/index.json'
+    _flush_after_set = True
 
 
 def test_index_model_works():

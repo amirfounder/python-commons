@@ -1,10 +1,9 @@
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field, parse_obj_as
 from pydantic.generics import GenericModel
 
-from .models import JsonIndexModel
-
+from commons.helpers import safe_write_to_file, safe_read_from_file, safe_read_json_as_obj_from_file
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
@@ -12,6 +11,12 @@ _V = TypeVar('_V')
 
 class JsonIndex(GenericModel, Generic[_K, _V]):
     source: dict[_K, _V] = Field(default={})
+    _source_path: str
+    _flush_after_set: bool = Field(default=False)
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self.load()
 
     def __contains__(self, item) -> bool:
         return item in self.source
@@ -21,6 +26,18 @@ class JsonIndex(GenericModel, Generic[_K, _V]):
 
     def __setitem__(self, key, value) -> None:
         self.source[key] = value
+        if self._flush_after_set:
+            self.flush()
 
     def get(self, key, default=None) -> Optional[_V]:
         return self.source.get(key, default)
+
+    def flush(self):
+        safe_write_to_file(self._source_path, self.json())
+
+    def load(self):
+        self.source = parse_obj_as(dict[_K, _V], safe_read_json_as_obj_from_file(self._source_path))
+
+    def query(self, filter_: dict):
+        # TODO -> Implement when needed
+        pass
