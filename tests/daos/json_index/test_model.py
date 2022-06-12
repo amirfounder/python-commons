@@ -24,7 +24,7 @@ V = TypeVar('V', bound=Recruiter)
 
 
 def test_index_model_works():
-    index = JsonIndex(Recruiter, 'dummy-data/index.json', {'flush_after_set': True})
+    index = JsonIndex(Recruiter, 'data/index.json', {'flush_after_set': True})
     preset_uuid = uuid.uuid4()
 
     index['amir'] = Recruiter(id=preset_uuid, name='Amir')
