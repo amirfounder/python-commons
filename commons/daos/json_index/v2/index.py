@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
-
-from commons.helpers import safe_read_json_as_obj_from_file, safe_write_obj_as_json_to_file
+from commons.helpers import safe_read_json_as_obj_from_file, safe_write_to_file
 
 
 class JsonIndexBuilder:
@@ -60,5 +58,14 @@ class JsonIndex:
     def flush(self):
         obj = {}
         for k, v in self.source.items():
-            obj[k] = json.loads(v.json())
-        safe_write_obj_as_json_to_file(self.path, obj)
+            obj[k] = v.json()
+
+        json_stack = ["{"]
+        for i, (k, v) in enumerate(obj.items()):
+            json_stack.append(f'"{k}": {v}')
+            if i < len(obj) - 1:
+                json_stack.append(',')
+        json_stack.append("}")
+        json_obj = ''.join(json_stack)
+
+        safe_write_to_file(self.path, json_obj)
