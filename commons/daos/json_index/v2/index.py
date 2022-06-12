@@ -17,7 +17,7 @@ class JsonIndex(GenericModel, Generic[_K, _V]):
 
     @classmethod
     def build(cls):
-        return cls.parse_file(cls._source_path)
+        return cls.parse_obj(safe_read_json_as_obj_from_file(cls._source_path))
 
     def __contains__(self, item) -> bool:
         return item in self.source
