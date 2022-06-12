@@ -8,6 +8,8 @@ from commons.helpers import now, format_iso, parse_iso
 
 class JsonIndexModel(BaseModel):
     id: UUID = Field(default_factory=uuid4)
+    updated_at: datetime = Field(default_factory=now)
+    created_at: datetime = Field(default_factory=now)
 
     class Config:
         json_encoders = {
@@ -22,8 +24,3 @@ class JsonIndexModel(BaseModel):
             return parse_iso(value)
         except Exception:
             return value
-
-
-class JsonIndexTimeTrackingModel(JsonIndexModel):
-    updated_at: datetime = Field(default_factory=now)
-    created_at: datetime = Field(default_factory=now)
