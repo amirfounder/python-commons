@@ -1,1 +1,18 @@
-{"source": {"amir": {"id": "43142a91-b023-48e7-a58b-bb2fef6edfbd", "updated_at": "2022-06-12T01:35:05.334229+00:00", "created_at": "2022-06-12T01:35:05.334229+00:00", "name": "Amir", "company": null, "headline": null, "username": null, "last_contacted": null}, "dior": {"id": "fd80ffcf-71b5-4811-99b2-460640771cd1", "updated_at": "2022-06-12T01:35:05.335229+00:00", "created_at": "2022-06-12T01:35:05.335229+00:00", "name": "Dior", "company": null, "headline": null, "username": null, "last_contacted": null}}}
+{
+    "amir": {
+        "company": null,
+        "headline": null,
+        "id": "0e03ec58-b635-4bab-95b1-dd679e988203",
+        "last_contacted": null,
+        "name": "Amir",
+        "username": null
+    },
+    "dior": {
+        "company": null,
+        "headline": null,
+        "id": "f5664448-0166-4806-868d-11749f5d98ee",
+        "last_contacted": null,
+        "name": "Dior",
+        "username": null
+    }
+}
