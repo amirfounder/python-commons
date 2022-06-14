@@ -1,3 +1,4 @@
+from abc import ABC
 from datetime import datetime
 from uuid import uuid4, UUID
 
@@ -11,11 +12,7 @@ def orjson_dumps(o, *, default):
     return orjson.dumps(o, default=default).decode()
 
 
-class JsonIndexModel(BaseModel):
-    id: UUID = Field(default_factory=uuid4)
-    updated_at: datetime = Field(default_factory=now)
-    created_at: datetime = Field(default_factory=now)
-
+class AbstractJsonIndexModel(BaseModel, ABC):
     class Config:
         json_loads = orjson.loads
         json_dumps = orjson_dumps
@@ -28,3 +25,13 @@ class JsonIndexModel(BaseModel):
     @validator('updated_at', 'created_at', pre=True)
     def parse_datetimes(cls, value):
         return parse_iso(value)
+
+
+class JsonIndexModel(AbstractJsonIndexModel):
+    id: UUID = Field(default_factory=uuid4)
+    updated_at: datetime = Field(default_factory=now)
+    created_at: datetime = Field(default_factory=now)
+
+
+class JsonIndexSubModel(AbstractJsonIndexModel):
+    pass
