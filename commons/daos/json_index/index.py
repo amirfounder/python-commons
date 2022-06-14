@@ -42,6 +42,9 @@ class JsonIndex(Mapping[str, Any]):
     def items(self):
         return self.source.items()
 
+    def pop(self, key, default=None):
+        return self.source.pop(key, default)
+
     def load(self):
         self.source = safe_read_json_as_obj_from_file(self.path, {})
         for k, v in self.source.items():
