@@ -1,1 +1,2 @@
-from .json_index import *
+from .document import *
+from .relational import *

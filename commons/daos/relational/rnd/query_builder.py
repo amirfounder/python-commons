@@ -173,9 +173,9 @@ class ConditionalAnd:
         self.args = args
 
 
-class Select(SqlBuilder):
+class Select:
     def __new__(cls, *args, **kwargs):
-        return super().__init__().select(*args)
+        return SqlBuilder().select(*args)
 
 
 def test_builder():
@@ -194,13 +194,13 @@ def test_builder():
             )
         )
         .distinct()
-        .build()
     )
 
     stmt = (
         Select(Car, Person)
         .where((Car.model == 'Accord' and Car.make == 'Honda') or (Car.model == 'Table E' and Car.make == 'Tesla'))
         .inner_join(Car.id.on(Person.primary_car_id))
+        .build()
     )
 
     stmt = Select(Car, Person)\

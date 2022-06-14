@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from commons.daos.json_index import JsonIndexModel, JsonIndex
+from commons.daos import JsonIndexModel, JsonIndex
 
 
 class Recruiter(JsonIndexModel):
