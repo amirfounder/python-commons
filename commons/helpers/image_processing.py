@@ -48,3 +48,11 @@ def screenshot(rect: tuple[int, int, int, int] | list[int]):
     monitor = {'left': x, 'top': y, 'width': w, 'height': h}
     with mss() as sct:
         return _screenshot(sct, monitor)
+
+
+def black_canvas(shape):
+    return np.zeros(shape)
+
+
+def white_canvas(shape):
+    return np.ones(shape)
