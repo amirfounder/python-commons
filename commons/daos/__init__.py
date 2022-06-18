@@ -1,2 +1,2 @@
-from .document import *
+from .key_value import *
 from .relational import *

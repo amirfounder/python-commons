@@ -12,7 +12,7 @@ def orjson_dumps(o, *, default):
     return orjson.dumps(o, default=default).decode()
 
 
-class AbstractJsonIndexModel(BaseModel, ABC):
+class AbstractKeyValueIndexModel(BaseModel, ABC):
     class Config:
         json_loads = orjson.loads
         json_dumps = orjson_dumps
@@ -27,11 +27,11 @@ class AbstractJsonIndexModel(BaseModel, ABC):
         return parse_iso(value)
 
 
-class JsonIndexModel(AbstractJsonIndexModel):
+class KeyValueIndexModel(AbstractKeyValueIndexModel):
     id: UUID = Field(default_factory=uuid4)
     updated_at: datetime = Field(default_factory=now)
     created_at: datetime = Field(default_factory=now)
 
 
-class JsonIndexSubModel(AbstractJsonIndexModel):
+class KeyValueIndexSubModel(AbstractKeyValueIndexModel):
     pass

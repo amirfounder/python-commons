@@ -1,4 +1,14 @@
-from typing import Any
+import uuid
+from typing import Any, Type
+
+
+def gen_uuid(cast_type: Type = str):
+    id_ = uuid.uuid4()
+    return safe_cast(id_, cast_type, id_)
+
+
+def swap(arr, idx1, idx2):
+    arr[idx1], arr[idx2] = arr[idx2], arr[idx1]
 
 
 def merge_lists(*args):
@@ -9,7 +19,7 @@ def merge_lists(*args):
     return result
 
 
-def safe_cast(value, type_, return_exception: bool = False, default_return: Any = None):
+def safe_cast(value, type_, default_return: Any = None, return_exception: bool = False):
     try:
         return type_(value)
     except Exception as e:

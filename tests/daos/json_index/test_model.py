@@ -3,10 +3,10 @@ import uuid
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from commons.daos import JsonIndexModel, JsonIndex
+from commons.daos import KeyValueIndexModel, KeyValueIndex
 
 
-class Recruiter(JsonIndexModel):
+class Recruiter(KeyValueIndexModel):
     name: Optional[str]
     company: Optional[str]
     headline: Optional[str]
@@ -14,7 +14,7 @@ class Recruiter(JsonIndexModel):
     last_contacted: Optional[datetime]
 
 
-class Company(JsonIndexModel):
+class Company(KeyValueIndexModel):
     name: str
     url: str
 
@@ -24,7 +24,7 @@ V = TypeVar('V', bound=Recruiter)
 
 
 def test_index_model_works():
-    index = JsonIndex(Recruiter, 'data/index.json', {'flush_after_set': True})
+    index = KeyValueIndex(Recruiter, 'data/index.json', {'flush_after_set': True})
     preset_uuid = uuid.uuid4()
 
     index['amir'] = Recruiter(id=preset_uuid, name='Amir')

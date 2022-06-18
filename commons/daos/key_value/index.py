@@ -5,7 +5,7 @@ import orjson
 from commons.helpers import safe_read_json_as_obj_from_file, safe_write_obj_as_json_to_file
 
 
-class JsonIndex(Mapping[str, Any]):
+class KeyValueIndex(Mapping[str, Any]):
     def __init__(self, model, path, configs):
         self.model = model
         self.path = path
