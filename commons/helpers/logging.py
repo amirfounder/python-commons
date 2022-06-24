@@ -19,11 +19,11 @@ def configure_logging_path(path):
 
 def _log(message, level: str = 'info'):
     message = {
-        'timestamp': now().isoformat().ljust(40),
-        'env': 'ENV: ' + str(get_working_env()).upper().ljust(10),
-        'pid': 'PID: ' + str(os.getpid()).ljust(15),
-        'thread': 'THREAD: ' + current_thread().name.ljust(45),
-        'level': 'LEVEL: ' + level.upper().ljust(15),
+        'timestamp': now().isoformat().ljust(39, '.') + ' ',
+        'env': 'ENV: ' + str(get_working_env()).upper().ljust(9, '.') + ' ',
+        'pid': 'PID: ' + str(os.getpid()).ljust(14, '.') + ' ',
+        'thread': 'THREAD: ' + current_thread().name.ljust(44, '.') + ' ',
+        'level': 'LEVEL: ' + level.upper().ljust(14, '.') + ' ',
         'message': message
     }
 
