@@ -2,6 +2,8 @@ import os
 from threading import current_thread
 from typing import Optional
 
+import multipledispatch
+
 from commons.helpers.files import safe_write_to_file
 from commons.helpers.datetime import now
 from commons.helpers.env import get_working_env
@@ -16,9 +18,6 @@ def configure_logging_path(path):
 
 
 def _log(message, level: str = 'info'):
-    if PATH is None:
-        raise Exception('Configure path using logging_handlers.configure_path(...) before attempting to log.')
-
     message = {
         'timestamp': now().isoformat().ljust(40),
         'env': 'ENV: ' + str(get_working_env()).upper().ljust(10),
@@ -31,7 +30,9 @@ def _log(message, level: str = 'info'):
     message = ''.join(message.values())
 
     print(message)
-    safe_write_to_file(PATH, message + '\n', mode='a')
+
+    if PATH is not None:
+        safe_write_to_file(PATH, message + '\n', mode='a')
 
 
 def log_success(message):
@@ -42,9 +43,13 @@ def log_info(message):
     _log(message, 'info')
 
 
-def log_error(message: str, exception: Optional[Exception] = None):
-    if exception:
-        message = message.strip().removesuffix('.')
-        message += f'. {type(exception).__name__} Exception: {str(exception)}'
+@multipledispatch.dispatch(Exception)
+def log_error(exception: Exception):
+    message = f'Caught {type(exception).__name__} Exception: {str(exception)}'
+    log_error(message)
 
+
+@multipledispatch.dispatch(str)
+def log_error(message: str):
     _log(message, 'error')
+
