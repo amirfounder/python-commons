@@ -64,3 +64,10 @@ def this_if_none(o, this, else_=None):
 
 def unique_type_set_from_list(list_: list):
     return set([type(o) for o in list_])
+
+def exhaust(iterator, should_return=False):
+    if should_return:
+        return [x for x in iterator]
+    else:
+        for _ in iterator:
+            pass
