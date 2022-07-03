@@ -53,3 +53,6 @@ def log_error(exception: Exception):
 def log_error(message: str):
     _log(message, 'error')
 
+
+def log_warning(message):
+    _log(message, 'warning')
