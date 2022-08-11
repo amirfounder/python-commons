@@ -1,4 +1,4 @@
-from commons.ds.linkedlists.base import AbstractDoublyLinkedNode, AbstractLinearLinkedList
+from python_lib.ds.linkedlists.base import AbstractDoublyLinkedNode, AbstractLinearLinkedList
 
 
 class DoublyLinkedNode(AbstractDoublyLinkedNode):
