@@ -2,7 +2,7 @@ from typing import Mapping, Any
 
 import orjson
 
-from python_lib.helpers import safe_read_json_as_obj_from_file, safe_write_obj_as_json_to_file
+from python_commons.helpers import safe_read_json_as_obj_from_file, safe_write_obj_as_json_to_file
 
 
 class KeyValueIndex(Mapping[str, Any]):

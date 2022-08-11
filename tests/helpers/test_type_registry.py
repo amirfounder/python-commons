@@ -1,4 +1,4 @@
-from python_lib.helpers.classes import TypeRegistry
+from python_commons.helpers.classes import TypeRegistry
 
 def test_type_registry():
     registry = TypeRegistry()
