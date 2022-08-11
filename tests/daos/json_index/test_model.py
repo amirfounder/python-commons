@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, TypeVar
 
-from python_commons.daos import KeyValueIndexModel, KeyValueIndex
+from commons.daos import KeyValueIndexModel, KeyValueIndex
 
 
 class Recruiter(KeyValueIndexModel):

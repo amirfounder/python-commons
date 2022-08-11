@@ -1,4 +1,4 @@
-from python_commons.helpers.logging import log_error, configure_logging_path
+from commons.helpers.logging import log_error, configure_logging_path
 
 
 def test_log_error_happy_path():

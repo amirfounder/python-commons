@@ -1,5 +1,5 @@
 import time
-from python_commons.helpers.threads import ThreadWrapper
+from commons.helpers.threads import ThreadWrapper
 
 
 def test():

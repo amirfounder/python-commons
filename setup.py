@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='python_commons',
-    version='0.0.46',
+    name='commons',
+    version='0.0.47',
     packages=find_packages(),
     install_requires=[
         'mss~=6.1.0',

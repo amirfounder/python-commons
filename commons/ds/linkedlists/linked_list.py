@@ -1,4 +1,4 @@
-from python_commons.ds.linkedlists.base import AbstractSinglyLinkedNode, AbstractLinearLinkedList
+from commons.ds.linkedlists.base import AbstractSinglyLinkedNode, AbstractLinearLinkedList
 
 
 class LinkedNode(AbstractSinglyLinkedNode):

@@ -1,7 +1,7 @@
 import random
 import timeit
 
-from python_commons.ds.heaps.max_heap import MaxHeap
+from commons.ds.heaps.max_heap import MaxHeap
 
 
 def test_max_heap():
