@@ -4,6 +4,7 @@ from os import environ
 DEV = 'dev'
 PROD = 'prod'
 STAGING = 'staging'
+TEST = 'test'
 QA = 'qa'
 ENV_KEY = 'ENVIRONMENT'
 
@@ -19,6 +20,10 @@ def set_env_to_prod():
 
 def set_env_to_staging():
     environ[ENV_KEY] = STAGING
+
+
+def set_env_to_test():
+    environ[ENV_KEY] = TEST
 
 
 def set_env_to_qa():
@@ -43,6 +48,10 @@ def is_env_staging():
 
 def is_env_qa():
     return get_working_env() == QA
+
+
+def is_env_test():
+    return get_working_env() == TEST
 
 
 def is_env_dev():
