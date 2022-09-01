@@ -1,5 +1,4 @@
 import random
-import timeit
 
 from commons.ds.heaps.max_heap import MaxHeap
 
