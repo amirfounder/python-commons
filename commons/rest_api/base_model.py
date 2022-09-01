@@ -19,10 +19,7 @@ class BaseBLModel(BaseModel):
         extra = Extra.ignore
 
 
-def generate_base_db_model(
-        base: DeclarativeMeta,
-        metadata: MetaData
-) -> Type[Type[DeclarativeMeta]]:
+def generate_base_db_model(base: DeclarativeMeta) -> Type[Type[DeclarativeMeta]]:
 
     class BaseDBModel(base):
         __abstract__ = True
@@ -53,7 +50,7 @@ def generate_base_db_model(
 
         @classmethod
         def get_table(cls):
-            return metadata.tables.get(cls.__tablename__)
+            return base.metadata.tables.get(cls.__tablename__)
 
         @classmethod
         def clean_obj(cls, obj: Dict) -> None:
