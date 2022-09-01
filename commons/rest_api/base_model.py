@@ -19,7 +19,7 @@ class BaseBLModel(BaseModel):
         extra = Extra.ignore
 
 
-def generate_base_db_model(base: DeclarativeMeta) -> Type[Type[DeclarativeMeta]]:
+def generate_base_db_model(base: Type[DeclarativeMeta]) -> Type[Type[DeclarativeMeta]]:
 
     class BaseDBModel(base):
         __abstract__ = True
