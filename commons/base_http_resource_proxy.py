@@ -8,7 +8,7 @@ class HttpResourceProxy(ABC):
     def __init__(self, host, port=None, endpoint='', *, proxies=None, base_params=None):
         self.proxies = proxies or {}
         self.base_params = base_params or {}
-        self.host = host,
+        self.host = host
         self.port = port
         self.endpoint = endpoint
         self.proxies = proxies
