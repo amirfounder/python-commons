@@ -39,3 +39,8 @@ class UnauthorizedException(HTTPException):
 class ForbiddenException(HTTPException):
     def __init__(self, message=''):
         super().__init__(status_code=403, detail=generate_detail_obj(403, 'Forbidden', message))
+
+
+class NotImplementedException(HTTPException):
+    def __init__(self, message=''):
+        super().__init__(status_code=501, detail=generate_detail_obj(501, 'Not Implemented', message))

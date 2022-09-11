@@ -89,7 +89,8 @@ class BaseCRUDService(Generic[_T]):
         obj_to_update = cls.resource_dao_class.get_by_id_raw(resource_id)
 
         if not obj_to_update:
-            cls.get_resource_validator().raise_not_exists({'id': resource_id})
+            validation_service = cls.get_resource_validator()
+            validation_service.raise_not_exists({'id': resource_id})
 
         for k, v in partial_model.items():
             if k not in obj_to_update:
@@ -106,6 +107,7 @@ class BaseCRUDService(Generic[_T]):
         model_exists = cls.resource_dao_class.exists(resource_id)
 
         if not model_exists:
-            cls.get_resource_validator().raise_not_exists({'id': resource_id})
+            validation_service = cls.get_resource_validator()
+            validation_service.raise_not_exists({'id': resource_id})
 
         return cls.resource_dao_class.delete(resource_id, hard=hard)
