@@ -1,5 +1,6 @@
 import time
 from abc import ABC
+from typing import Optional
 
 import requests
 
@@ -70,7 +71,7 @@ class BaseHttpResourceProxy(ABC):
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.get, (), kwargs, run_with_retries=run_with_retries)
 
-    def put(self, data: dict, *, endpoint: str = None, run_with_retries: bool = False):
+    def put(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
         endpoint = endpoint or self.endpoint
         if 'id' not in data:
             raise Exception('ID not provided')
@@ -81,7 +82,7 @@ class BaseHttpResourceProxy(ABC):
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.put, (), kwargs, run_with_retries=run_with_retries)
 
-    def post(self, data: dict, *, endpoint: str = None, run_with_retries: bool = False):
+    def post(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
         endpoint = endpoint or self.endpoint
 
         kwargs = {'url': f'{self.base_url}/{endpoint}', 'data': data}
