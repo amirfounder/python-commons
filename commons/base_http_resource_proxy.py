@@ -5,17 +5,12 @@ import requests
 
 
 class HttpResourceProxy(ABC):
-    def __init__(self, host, port=None, endpoint='', *, proxies=None, base_params=None):
+    def __init__(self, base_url: str, endpoint: str, *, proxies=None, base_params=None):
         self.proxies = proxies or {}
         self.base_params = base_params or {}
-        self.host = host
-        self.port = port
         self.endpoint = endpoint
-        self.proxies = proxies
-        self.base_params = base_params
         self.retries_data = {}
-        self.thread_data = {}
-        self.base_url = f'http://{host}{f":{port}" if port else ""}{endpoint}'
+        self.base_url = f'{base_url}{endpoint}'
 
     def _load_proxies_options(self, request_kwargs):
         if self.proxies:
@@ -51,8 +46,7 @@ class HttpResourceProxy(ABC):
         filters = filters or {}
         params = self.base_params.copy()
         params.update(filters)
-        params['page'] = page
-        params['size'] = size
+        params.update({'page': page, 'size': size})
 
         kwargs = {'url': self.base_url, 'params': params}
         self._load_proxies_options(kwargs)
