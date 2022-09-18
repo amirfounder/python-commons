@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Any
 
 from commons.logging import log_error
 
@@ -29,6 +29,11 @@ class BaseResourceValidator:
 
     def raise_unique_constraint(self, field: str, value: str):
         message = f'Resource {self.resource_bl_model_class.__name__} with {field}={value} already exists.'
+        log_error(message)
+        raise ConflictException(message)
+
+    def raise_invalid_field_value(self, field: str, value: Any):
+        message = f'Invalid value for field {field}: {value}'
         log_error(message)
         raise ConflictException(message)
 
