@@ -54,6 +54,17 @@ class BaseCRUDService(Generic[_T]):
         return cls.get_all(filters={field: value})
 
     @classmethod
+    def get_one_by_field(cls, field: str, value: str) -> _T:
+        models = cls.get_all_by_field(field, value)
+        model = next(iter(models), None)
+
+        if not model:
+            validator = cls.get_resource_validator()
+            validator.raise_not_exists({field: value})
+
+        return model
+
+    @classmethod
     def get_by_id(cls, resource_id: int, additional_filters: Optional[Dict] = None) -> Optional[_T]:
 
         model = cls.resource_dao_class.get_by_id(resource_id, additional_filters)
