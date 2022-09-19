@@ -3,6 +3,8 @@ from typing import Optional, Callable
 
 import requests
 
+from commons.rest_api.http_exceptions import BadGatewayException
+
 
 class HttpClient:
     def __init__(self, base_url: str, *, proxies=None, base_params=None, apply_proxies: bool = False,
@@ -41,6 +43,8 @@ class HttpClient:
             except Exception as e:
                 print(f'Exception occurred: {str(e)}')
             time.sleep(retry_delay)
+
+        raise BadGatewayException(f'Bad Gateway')
 
     def execute_request(
             self,

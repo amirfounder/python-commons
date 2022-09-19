@@ -44,3 +44,8 @@ class ForbiddenException(HTTPException):
 class NotImplementedException(HTTPException):
     def __init__(self, message=''):
         super().__init__(status_code=501, detail=generate_detail_obj(501, 'Not Implemented', message))
+
+
+class BadGatewayException(HTTPException):
+    def __init__(self, message=''):
+        super().__init__(status_code=502, detail=generate_detail_obj(502, 'Bad Gateway', message))
