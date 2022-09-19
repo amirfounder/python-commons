@@ -37,5 +37,5 @@ class PaginatedResults(GenericModel, Generic[_T]):
         self.results = map_models(dto_class, self.results)
 
     @classmethod
-    def empty(cls):
-        return cls(results=[], params={}, count=0)
+    def empty(cls, pagination_options: PaginationOptions):
+        return cls(results=[], params=pagination_options.dict(), count=0)
