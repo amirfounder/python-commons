@@ -1,14 +1,22 @@
 import time
-from typing import Optional, Callable
+from typing import Optional, Callable, Type
 
 import requests
 
+from commons.rest_api.base_model import BaseBLModel
 from commons.rest_api.http_exceptions import BadGatewayException
 
 
 class HttpClient:
-    def __init__(self, base_url: str, *, proxies=None, base_params=None, apply_proxies: bool = False,
-                 run_with_retries: bool = False):
+    def __init__(
+            self,
+            base_url: str,
+            *,
+            proxies=None,
+            base_params=None,
+            apply_proxies: bool = False,
+            run_with_retries: bool = False,
+    ):
         self.apply_proxies = apply_proxies
         self.base_url = base_url
         self.base_params = base_params or {}
@@ -55,7 +63,7 @@ class HttpClient:
             run_with_retries: bool = False,
             apply_proxies: bool = None,
             apply_auth_header: bool = None
-    ):
+    ) -> requests.Response:
         if apply_auth_header is None:
             apply_auth_header = True
 
@@ -67,6 +75,13 @@ class HttpClient:
 
         if apply_proxies:
             self._apply_proxies_options(kwargs)
+
+        def override_func(*args_, **kwargs_):
+            response = func(*args_, **kwargs_)
+            response.raise_for_status()
+            return response
+
+        func = override_func
 
         if run_with_retries:
             kwargs = {'func': func, 'args': args, 'kwargs': kwargs}
