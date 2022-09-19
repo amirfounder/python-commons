@@ -1,21 +1,29 @@
 import time
-from typing import Optional
+from typing import Optional, Callable
 
 import requests
 
 
 class HttpClient:
-    def __init__(self, base_url: str, *, proxies=None, base_params=None):
+    def __init__(self, base_url: str, *, proxies=None, base_params=None, apply_proxies: bool = False,
+                 run_with_retries: bool = False):
+        self.apply_proxies = apply_proxies
         self.base_url = base_url
         self.base_params = base_params or {}
         self.proxies = proxies or {}
         self.retries_data = {}
+        self.bearer_token = None
+        self.run_with_retries = run_with_retries
 
-    def _load_proxies_options(self, request_kwargs):
+    def _apply_proxies_options(self, request_kwargs):
         if self.proxies:
             request_kwargs['proxies'] = self.proxies
 
-    def run_with_retries(
+    def _apply_auth_header(self, request_kwargs):
+        if self.bearer_token:
+            request_kwargs['headers'] = {'Authorization': f'Bearer {self.bearer_token}'}
+
+    def _run_with_retries(
             self,
             func,
             *,
@@ -34,10 +42,31 @@ class HttpClient:
                 print(f'Exception occurred: {str(e)}')
             time.sleep(retry_delay)
 
-    def execute_request(self, func, args, kwargs, *, run_with_retries: bool = False):
+    def execute_request(
+            self,
+            func: Callable,
+            args: tuple,
+            kwargs: dict,
+            *,
+            run_with_retries: bool = False,
+            apply_proxies: bool = None,
+            apply_auth_header: bool = None
+    ):
+        if apply_auth_header is None:
+            apply_auth_header = True
+
+        if apply_proxies is None:
+            apply_proxies = self.apply_proxies
+
+        if apply_auth_header:
+            self._apply_auth_header(kwargs)
+
+        if apply_proxies:
+            self._apply_proxies_options(kwargs)
+
         if run_with_retries:
             kwargs = {'func': func, 'args': args, 'kwargs': kwargs}
-            func = self.run_with_retries
+            func = self._run_with_retries
         
         return func(**kwargs)
 
@@ -50,41 +79,89 @@ class HttpClient:
             endpoint: str = '',
             run_with_retries: bool = False
     ):
-        endpoint = endpoint or ''
+        url = self.base_url
+        if endpoint:
+            url += endpoint
+
         filters = filters or {}
+
         params = self.base_params.copy()
         params.update(filters)
         params.update({'page': page, 'size': size})
-        kwargs = {'url': f'{self.base_url}{endpoint}', 'params': params}
-        self._load_proxies_options(kwargs)
-        return self.execute_request(requests.get, (), kwargs, run_with_retries=run_with_retries)
+
+        kwargs = {'url': url, 'params': params}
+
+        return self.execute_request(
+            func=requests.get,
+            args=(),
+            kwargs=kwargs,
+            run_with_retries=run_with_retries
+        )
 
     def get_by_id(self, resource_id: int, *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or ''
         if resource_id is None:
             raise Exception('ID cannot be None')
-        kwargs = {'url': f'{self.base_url}{endpoint}/{resource_id}'}
-        self._load_proxies_options(kwargs)
-        return self.execute_request(requests.get, (), kwargs, run_with_retries=run_with_retries)
 
-    def put(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or ''
+        url = self.base_url
+        if endpoint:
+            url += endpoint
+
+        url += f'/{resource_id}'
+
+        kwargs = {'url': url}
+
+        return self.execute_request(
+            func=requests.get,
+            args=(),
+            kwargs=kwargs,
+            run_with_retries=run_with_retries
+        )
+
+    def put(self, data: Optional[dict], *, endpoint_suffix: str = None, run_with_retries: bool = False):
         if 'id' not in data:
             raise Exception('ID not provided')
+
         if data['id'] is None:
             raise Exception('ID cannot be None')
-        kwargs = {'url': f'{self.base_url}{endpoint}/{data["id"]}', 'data': data}
-        self._load_proxies_options(kwargs)
-        return self.execute_request(requests.put, (), kwargs, run_with_retries=run_with_retries)
 
-    def post(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or ''
-        kwargs = {'url': f'{self.base_url}{endpoint}', 'data': data}
-        self._load_proxies_options(kwargs)
-        return self.execute_request(requests.post, (), kwargs, run_with_retries=run_with_retries)
+        url = self.base_url
+        if endpoint_suffix:
+            url += endpoint_suffix
 
-    def delete(self, resource_id: int, *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or ''
-        kwargs = {'url': f'{self.base_url}{endpoint}/{resource_id}'}
-        self._load_proxies_options(kwargs)
-        return self.execute_request(requests.delete, (), kwargs, run_with_retries=run_with_retries)
+        url += f'/{data["id"]}'
+
+        kwargs = {'url': url, 'data': data}
+        return self.execute_request(
+            func=requests.put,
+            args=(),
+            kwargs=kwargs,
+            run_with_retries=run_with_retries
+        )
+
+    def post(self, data: Optional[dict], *, endpoint_suffix: str = None, run_with_retries: bool = False):
+        url = self.base_url
+        if endpoint_suffix:
+            url += endpoint_suffix
+
+        kwargs = {'url': url, 'data': data}
+        return self.execute_request(
+            func=requests.post,
+            args=(),
+            kwargs=kwargs,
+            run_with_retries=run_with_retries
+        )
+
+    def delete(self, resource_id: int, *, endpoint_suffix: str = None, run_with_retries: bool = False):
+        url = self.base_url
+        if endpoint_suffix:
+            url += endpoint_suffix
+
+        url += f'/{resource_id}'
+
+        kwargs = {'url': url}
+        return self.execute_request(
+            func=requests.delete,
+            args=(),
+            kwargs=kwargs,
+            run_with_retries=run_with_retries
+        )
