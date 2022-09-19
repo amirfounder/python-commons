@@ -76,12 +76,12 @@ class HttpClient:
             page: int = 1,
             size: int = 20,
             *,
-            endpoint: str = '',
+            endpoint_suffix: str = '',
             run_with_retries: bool = False
     ):
         url = self.base_url
-        if endpoint:
-            url += endpoint
+        if endpoint_suffix:
+            url += endpoint_suffix
 
         filters = filters or {}
 
@@ -98,13 +98,13 @@ class HttpClient:
             run_with_retries=run_with_retries
         )
 
-    def get_by_id(self, resource_id: int, *, endpoint: str = None, run_with_retries: bool = False):
+    def get_by_id(self, resource_id: int, *, endpoint_suffix: str = None, run_with_retries: bool = False):
         if resource_id is None:
             raise Exception('ID cannot be None')
 
         url = self.base_url
-        if endpoint:
-            url += endpoint
+        if endpoint_suffix:
+            url += endpoint_suffix
 
         url += f'/{resource_id}'
 
