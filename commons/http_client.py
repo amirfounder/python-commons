@@ -70,7 +70,7 @@ class HttpClient:
         
         return func(**kwargs)
 
-    def get_all(
+    def get(
             self,
             filters: dict = None,
             page: int = 1,
