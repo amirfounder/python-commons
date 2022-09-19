@@ -16,6 +16,7 @@ class HttpClient:
             base_params=None,
             apply_proxies: bool = False,
             run_with_retries: bool = False,
+            content_type: str = 'application/json',
     ):
         self.apply_proxies = apply_proxies
         self.base_url = base_url
@@ -24,14 +25,19 @@ class HttpClient:
         self.retries_data = {}
         self.bearer_token = None
         self.run_with_retries = run_with_retries
+        self.content_type = content_type
 
     def _apply_proxies_options(self, request_kwargs):
         if self.proxies:
             request_kwargs['proxies'] = self.proxies
 
     def _apply_auth_header(self, request_kwargs):
+        headers = {'Content-Type': self.content_type}
+
         if self.bearer_token:
-            request_kwargs['headers'] = {'Authorization': f'Bearer {self.bearer_token}'}
+            headers['Authorization'] = f'Bearer {self.bearer_token}'
+
+        request_kwargs['headers'] = headers
 
     def _run_with_retries(
             self,
@@ -79,7 +85,7 @@ class HttpClient:
         if run_with_retries:
             kwargs = {'func': func, 'args': args, 'kwargs': kwargs}
             func = self._run_with_retries
-        
+
         return func(**kwargs)
 
     def get(
