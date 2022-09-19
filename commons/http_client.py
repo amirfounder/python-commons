@@ -1,86 +1,68 @@
 import time
-from typing import Optional, Callable, Type
+from typing import Optional, Callable
 
 import requests
+from requests import Response
 
-from commons.rest_api.base_model import BaseBLModel
+from commons.logging import log_info
 from commons.rest_api.http_exceptions import BadGatewayException
 
 
-class HttpClient:
+class HttpResourceClient:
+    """Enhanced request methods for REST apis"""
     def __init__(
             self,
             base_url: str,
             *,
             proxies=None,
             base_params=None,
-            apply_proxies: bool = False,
-            run_with_retries: bool = False,
+            should_apply_proxy_options: bool = False,
+            retry_count: int = 3,
     ):
-        self.apply_proxies = apply_proxies
         self.base_url = base_url
         self.base_params = base_params or {}
-        self.proxies = proxies or {}
-        self.retries_data = {}
         self.bearer_token = None
-        self.run_with_retries = run_with_retries
+        self.proxies = proxies or {}
+        self.should_apply_proxy_options = should_apply_proxy_options
+        self.retry_logs = {}
+        self.retry_count = retry_count
 
-    def _apply_proxies_options(self, request_kwargs):
-        if self.proxies:
-            request_kwargs['proxies'] = self.proxies
+    def before_request(self, func: Callable, args, kwargs):
+        if self.should_apply_proxy_options and self.proxies:
+            kwargs['proxies'] = self.proxies
 
-    def _apply_auth_header(self, request_kwargs):
         if self.bearer_token:
-            request_kwargs['headers'] = {'Authorization': f'Bearer {self.bearer_token}'}
+            kwargs['headers'] = {'Authorization': f'Bearer {self.bearer_token}'}
 
-    def _run_with_retries(
-            self,
-            func,
-            *,
-            args: tuple = None,
-            kwargs: dict = None,
-            retry_count: int = 3,
-            retry_delay: int = 1
-    ):
-        args = args or ()
-        kwargs = kwargs or {}
+    def after_request(self, response: Response):
+        return response
 
-        for i in range(retry_count):
+    def execute_request(self, func: Callable, args: tuple, kwargs: dict) -> requests.Response:
+        self.before_request(func, *args, **kwargs)
+
+        response = None
+        is_success = False
+
+        for i in range(3):
             try:
-                return func(*args, **kwargs)
+                response = func(*args, **kwargs)
+                is_success = True
+                break
+
             except Exception as e:
-                print(f'Exception occurred: {str(e)}')
-            time.sleep(retry_delay)
 
-        raise BadGatewayException(f'Bad Gateway')
+                if 'exceptions' not in self.retry_logs:
+                    self.retry_logs['exceptions'] = []
+                self.retry_logs['exceptions'].append(e)
 
-    def execute_request(
-            self,
-            func: Callable,
-            args: tuple,
-            kwargs: dict,
-            *,
-            run_with_retries: bool = False,
-            apply_proxies: bool = None,
-            apply_auth_header: bool = None
-    ) -> requests.Response:
-        if apply_auth_header is None:
-            apply_auth_header = True
+                delay = 2 ** i
+                log_info(f'Suppressed exception: {str(e)}. Re-attempting in {delay} seconds...')
+                time.sleep(delay)
 
-        if apply_proxies is None:
-            apply_proxies = self.apply_proxies
+        if not is_success:
+            raise BadGatewayException('Bad gateway')
 
-        if apply_auth_header:
-            self._apply_auth_header(kwargs)
-
-        if apply_proxies:
-            self._apply_proxies_options(kwargs)
-
-        if run_with_retries:
-            kwargs = {'func': func, 'args': args, 'kwargs': kwargs}
-            func = self._run_with_retries
-
-        return func(**kwargs)
+        return self.after_request(response)
 
     def get(
             self,
@@ -89,91 +71,59 @@ class HttpClient:
             size: int = 20,
             *,
             endpoint_suffix: str = '',
-            run_with_retries: bool = False
+            **kwargs
     ):
         url = self.base_url
         if endpoint_suffix:
             url += endpoint_suffix
 
         filters = filters or {}
-
         params = self.base_params.copy()
         params.update(filters)
         params.update({'page': page, 'size': size})
 
-        kwargs = {'url': url, 'params': params}
+        kwargs.update({'url': url, 'params': params})
+        return self.execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-        return self.execute_request(
-            func=requests.get,
-            args=(),
-            kwargs=kwargs,
-            run_with_retries=run_with_retries
-        )
-
-    def get_by_id(self, resource_id: int, *, endpoint_suffix: str = None, run_with_retries: bool = False):
+    def get_by_id(self, resource_id: int, *, endpoint_suffix: str = None, **kwargs):
         if resource_id is None:
             raise Exception('ID cannot be None')
 
         url = self.base_url
         if endpoint_suffix:
             url += endpoint_suffix
-
         url += f'/{resource_id}'
 
-        kwargs = {'url': url}
+        kwargs.update({'url': url})
+        return self.execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-        return self.execute_request(
-            func=requests.get,
-            args=(),
-            kwargs=kwargs,
-            run_with_retries=run_with_retries
-        )
-
-    def put(self, data: Optional[dict], *, endpoint_suffix: str = None, run_with_retries: bool = False):
+    def put(self, data: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
         if 'id' not in data:
             raise Exception('ID not provided')
-
         if data['id'] is None:
             raise Exception('ID cannot be None')
 
         url = self.base_url
         if endpoint_suffix:
             url += endpoint_suffix
-
         url += f'/{data["id"]}'
 
-        kwargs = {'url': url, 'json': data}
-        return self.execute_request(
-            func=requests.put,
-            args=(),
-            kwargs=kwargs,
-            run_with_retries=run_with_retries
-        )
+        kwargs.update({'url': url, 'json': data})
+        return self.execute_request(func=requests.put, args=(), kwargs=kwargs)
 
-    def post(self, data: Optional[dict], *, endpoint_suffix: str = None, run_with_retries: bool = False):
+    def post(self, data: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
         url = self.base_url
         if endpoint_suffix:
             url += endpoint_suffix
 
-        kwargs = {'url': url, 'json': data}
-        return self.execute_request(
-            func=requests.post,
-            args=(),
-            kwargs=kwargs,
-            run_with_retries=run_with_retries
-        )
+        kwargs.update({'url': url, 'json': data})
+        return self.execute_request(func=requests.post, args=(), kwargs=kwargs)
 
-    def delete(self, resource_id: int, *, endpoint_suffix: str = None, run_with_retries: bool = False):
+    def delete(self, resource_id: int, *, endpoint_suffix: str = None, **kwargs):
         url = self.base_url
         if endpoint_suffix:
             url += endpoint_suffix
-
         url += f'/{resource_id}'
 
-        kwargs = {'url': url}
-        return self.execute_request(
-            func=requests.delete,
-            args=(),
-            kwargs=kwargs,
-            run_with_retries=run_with_retries
-        )
+        kwargs.update({'url': url})
+        return self.execute_request(func=requests.delete, args=(), kwargs=kwargs)
