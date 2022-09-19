@@ -76,13 +76,6 @@ class HttpClient:
         if apply_proxies:
             self._apply_proxies_options(kwargs)
 
-        def override_func(*args_, **kwargs_):
-            response = func(*args_, **kwargs_)
-            response.raise_for_status()
-            return response
-
-        func = override_func
-
         if run_with_retries:
             kwargs = {'func': func, 'args': args, 'kwargs': kwargs}
             func = self._run_with_retries

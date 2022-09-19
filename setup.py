@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='commons',
-    version='0.0.78',
+    version='0.0.79',
     packages=find_packages(),
     install_requires=[
         'mss~=6.1.0',
@@ -12,6 +12,6 @@ setup(
         'opencv-python~=4.5.5.64',
         'pydantic~=1.9.1',
         'orjson~=3.7.2',
-        'fastapi~=0.70.0',
+        'fastapi~=0.78.0',
     ]
 )
