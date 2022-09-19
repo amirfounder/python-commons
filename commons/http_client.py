@@ -6,11 +6,11 @@ import requests
 
 class HttpClient:
     def __init__(self, base_url: str, endpoint: str, *, proxies=None, base_params=None):
-        self.proxies = proxies or {}
+        self.base_url = base_url
         self.base_params = base_params or {}
         self.endpoint = endpoint
+        self.proxies = proxies or {}
         self.retries_data = {}
-        self.base_url = f'{base_url}{endpoint}'
 
     def _load_proxies_options(self, request_kwargs):
         if self.proxies:
