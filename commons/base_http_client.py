@@ -5,7 +5,7 @@ from typing import Optional
 import requests
 
 
-class BaseHttpResourceProxy(ABC):
+class BaseHttpClient(ABC):
     def __init__(self, base_url: str, endpoint: str, *, proxies=None, base_params=None):
         self.proxies = proxies or {}
         self.base_params = base_params or {}
