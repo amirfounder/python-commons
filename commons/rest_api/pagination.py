@@ -35,3 +35,7 @@ class PaginatedResults(GenericModel, Generic[_T]):
 
     def map_results_to_dtos(self, dto_class: Type[BaseDTO]):
         self.results = map_models(dto_class, self.results)
+
+    @classmethod
+    def empty(cls):
+        return cls(results=[], params={}, count=0)
