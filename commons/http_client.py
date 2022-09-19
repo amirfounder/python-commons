@@ -5,10 +5,9 @@ import requests
 
 
 class HttpClient:
-    def __init__(self, base_url: str, endpoint: str, *, proxies=None, base_params=None):
+    def __init__(self, base_url: str, *, proxies=None, base_params=None):
         self.base_url = base_url
         self.base_params = base_params or {}
-        self.endpoint = endpoint
         self.proxies = proxies or {}
         self.retries_data = {}
 
@@ -51,46 +50,41 @@ class HttpClient:
             endpoint: str = '',
             run_with_retries: bool = False
     ):
-        endpoint = endpoint or self.endpoint
+        endpoint = endpoint or ''
         filters = filters or {}
         params = self.base_params.copy()
         params.update(filters)
         params.update({'page': page, 'size': size})
-
-        kwargs = {'url': f'{self.base_url}/{endpoint}', 'params': params}
+        kwargs = {'url': f'{self.base_url}{endpoint}', 'params': params}
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.get, (), kwargs, run_with_retries=run_with_retries)
 
     def get_by_id(self, resource_id: int, *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or self.endpoint
+        endpoint = endpoint or ''
         if resource_id is None:
             raise Exception('ID cannot be None')
-
-        kwargs = {'url': f'{self.base_url}/{endpoint}/{resource_id}'}
+        kwargs = {'url': f'{self.base_url}{endpoint}/{resource_id}'}
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.get, (), kwargs, run_with_retries=run_with_retries)
 
     def put(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or self.endpoint
+        endpoint = endpoint or ''
         if 'id' not in data:
             raise Exception('ID not provided')
         if data['id'] is None:
             raise Exception('ID cannot be None')
-
-        kwargs = {'url': f'{self.base_url}/{endpoint}/{data["id"]}', 'data': data}
+        kwargs = {'url': f'{self.base_url}{endpoint}/{data["id"]}', 'data': data}
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.put, (), kwargs, run_with_retries=run_with_retries)
 
     def post(self, data: Optional[dict], *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or self.endpoint
-
-        kwargs = {'url': f'{self.base_url}/{endpoint}', 'data': data}
+        endpoint = endpoint or ''
+        kwargs = {'url': f'{self.base_url}{endpoint}', 'data': data}
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.post, (), kwargs, run_with_retries=run_with_retries)
 
     def delete(self, resource_id: int, *, endpoint: str = None, run_with_retries: bool = False):
-        endpoint = endpoint or self.endpoint
-
-        kwargs = {'url': f'{self.base_url}/{endpoint}/{resource_id}'}
+        endpoint = endpoint or ''
+        kwargs = {'url': f'{self.base_url}{endpoint}/{resource_id}'}
         self._load_proxies_options(kwargs)
         return self.execute_request(requests.delete, (), kwargs, run_with_retries=run_with_retries)
