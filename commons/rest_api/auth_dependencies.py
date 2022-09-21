@@ -1,5 +1,5 @@
 from fastapi import Header, Depends
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 http_bearer = HTTPBearer(auto_error=False)
 
@@ -11,6 +11,6 @@ def get_referer():
 
 
 def get_bearer_token():
-    def dependency(token: str = Depends(http_bearer)):
-        return token
+    def dependency(token: HTTPAuthorizationCredentials = Depends(http_bearer)):
+        return token.credentials
     return Depends(dependency)
