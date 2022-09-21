@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='commons',
-    version='0.0.88',
+    version='0.0.89',
     packages=find_packages(),
     install_requires=[
         'mss~=6.1.0',
@@ -14,7 +14,6 @@ setup(
         'orjson~=3.7.2',
         'fastapi~=0.78.0',
         'requests~=2.26.0',
-        'uvicorn~=0.15.0',
         'sqlalchemy~=1.4.27',
         'psycopg2~=2.9.1',
     ]
