@@ -33,10 +33,14 @@ class HttpRestClient(Generic[_T]):
             kwargs['proxies'] = self.proxies
 
         if self.bearer_token:
-            kwargs['headers'] = {'Authorization': f'Bearer {self.bearer_token}'}
+            if 'headers' not in kwargs:
+                kwargs['headers'] = {}
+            kwargs['headers']['Authorization'] = f'Bearer {self.bearer_token}'
+
+        return func, args, kwargs
 
     def _execute_request(self, func: Callable, args: tuple, kwargs: dict) -> requests.Response:
-        self.before_request(func, *args, **kwargs)
+        func, args, kwargs = self.before_request(func, args, kwargs)
 
         response = None
         is_success = False
@@ -88,19 +92,19 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url})
         return self._execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-    def put(self, data: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
-        if 'id' not in data:
+    def put(self, json: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
+        if 'id' not in json:
             raise Exception('ID not provided')
-        if data['id'] is None:
+        if json['id'] is None:
             raise Exception('ID cannot be None')
 
-        url = f'{self.base_url}{endpoint_suffix}/{data["id"]}'
-        kwargs.update({'url': url, 'json': data})
+        url = f'{self.base_url}{endpoint_suffix}/{json["id"]}'
+        kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.put, args=(), kwargs=kwargs)
 
-    def post(self, data: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
+    def post(self, json: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
         url = f'{self.base_url}{endpoint_suffix}'
-        kwargs.update({'url': url, 'json': data})
+        kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.post, args=(), kwargs=kwargs)
 
     def delete(self, resource_id: int, *, endpoint_suffix: str = None, **kwargs):

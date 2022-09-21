@@ -110,6 +110,22 @@ class BaseDao(Generic[_T]):
             return cls._obj_to_model(obj)
 
     @classmethod
+    def get_all_by_field_raw(cls):
+        pass
+
+    @classmethod
+    def get_all_by_field(cls):
+        pass
+
+    @classmethod
+    def get_one_by_field_raw(cls):
+        pass
+
+    @classmethod
+    def get_one_by_field(cls):
+        pass
+
+    @classmethod
     def create_raw(cls, obj: dict) -> dict:
         cls._prepare_for_create(obj)
         cls.resource_db_model_class.clean_obj(obj)
