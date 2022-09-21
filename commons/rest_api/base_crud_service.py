@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Type, Generator, Optional, Dict
+from typing import TypeVar, Generic, Type, Generator, Optional, Dict, Any
 
 from commons.logging import log_warning
 
@@ -47,7 +47,7 @@ class BaseCRUDService(Generic[_T]):
         )
 
     @classmethod
-    def get_all_by_field(cls, field: str, value: str) -> Generator[_T, None, None]:
+    def get_all_by_field(cls, field: str, value: Any) -> Generator[_T, None, None]:
         if field not in cls.resource_bl_model_class.__fields__:
             raise ValueError(f'Field {field} is not a valid field for model {cls.resource_bl_model_class.__name__}')
 
