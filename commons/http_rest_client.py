@@ -92,7 +92,7 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url})
         return self._execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-    def put(self, json: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
+    def put(self, json: Optional[dict] = None, *, endpoint_suffix: str = None, **kwargs):
         if 'id' not in json:
             raise Exception('ID not provided')
         if json['id'] is None:
@@ -102,7 +102,7 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.put, args=(), kwargs=kwargs)
 
-    def post(self, json: Optional[dict], *, endpoint_suffix: str = None, **kwargs):
+    def post(self, json: Optional[dict] = None, *, endpoint_suffix: str = None, **kwargs):
         url = f'{self.base_url}{endpoint_suffix}'
         kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.post, args=(), kwargs=kwargs)
