@@ -1,22 +1,119 @@
 import time
-from typing import Optional, Callable, Generic, TypeVar
+from typing import Optional, Callable, TypeVar, Iterable
 
 import requests
+from requests import Response
 
 from commons.logging import log_info
 from commons.rest_api.http_exceptions import BadGatewayException
+from commons.threads import ThreadWrapper, start_threads, join_threads
 
 _T = TypeVar('_T')
 
 
-class HttpRestClient(Generic[_T]):
+class HttpRestClient:
+    def __init__(
+            self,
+            base_url: str = None,
+            base_params: dict = None,
+            base_headers: dict = None,
+            proxies: dict = None,
+            *,
+            bearer_token: str = None,
+            base_retry_count: int = 3,
+            base_retry_delay: int = 1,
+    ):
+        self.base_url = base_url
+        self.base_params = base_params or {}
+        self.base_headers = base_headers or {}
+        self.proxies = proxies or {}
+        self.bearer_token = bearer_token
+        self.base_retry_count = base_retry_count
+        self.base_retry_delay = base_retry_delay
+
+    def execute(
+            self,
+            executable: Callable[[], requests.Response],
+            *,
+            retry_count: int = None,
+            retry_delay: int = None,
+    ) -> requests.Response:
+        retry_count = retry_count or self.base_retry_count
+        retry_delay = retry_delay or self.base_retry_delay
+
+        for i in range(retry_count):
+            try:
+                response = executable()
+                response.raise_for_status()
+                return response
+
+            except Exception as e:
+                if i == retry_count - 1:
+                    raise e
+                time.sleep(retry_delay * (i + 1))
+
+    def execute_in_thread_pool(
+            self,
+            funcs: Iterable[Callable[[], Response]],
+            *,
+            retry_count: int = 3,
+            max_threads: int = 25
+    ) -> requests.Response:
+        threads = []
+
+        for func in funcs:
+            def _func():
+                return self.execute(func, retry_count=retry_count)
+
+            t = ThreadWrapper(target=_func)
+            threads.append(t)
+
+        start_threads(threads, max_threads=max_threads)
+        join_threads(threads)
+
+        for t in threads:
+            yield t.result
+
+    def make_url(self, append_suffix: str | int = None):
+        url = self.base_url
+
+        if not url:
+            raise ValueError('base_url is not set')
+
+        if append_suffix:
+            if not isinstance(append_suffix, str):
+                append_suffix = str(append_suffix)
+            if not url.startswith('/'):
+                url = '/' + url
+            url += append_suffix
+
+        return url
+
+    def make_session(self):
+        sess = requests.Session()
+
+        if self.proxies:
+            sess.proxies.update(self.proxies)
+
+        if self.base_headers:
+            sess.headers.update(self.base_headers)
+
+        if self.bearer_token:
+            sess.headers['Authorization'] = f'Bearer {self.bearer_token}'
+
+        if self.base_params:
+            sess.params = self.base_params
+
+        return sess
+
+
+class _DeprecatedHttpRestClient:
     def __init__(
             self,
             base_url: str,
             *,
             proxies=None,
             base_params=None,
-            bl_model_class=None,
             retry_count: int = 3,
             bearer_token: str = None
     ):
@@ -24,7 +121,6 @@ class HttpRestClient(Generic[_T]):
         self.base_params = base_params or {}
         self.proxies = proxies or {}
         self.retry_count = retry_count
-        self.bl_model_class = bl_model_class
 
         self.bearer_token = bearer_token
         self.retry_logs = {}
