@@ -89,20 +89,19 @@ class HttpRestClient:
 
         return url
 
-    def make_session(self):
+    def make_session(self, headers: dict = None, params: dict = None):
         sess = requests.Session()
 
-        if self.proxies:
-            sess.proxies.update(self.proxies)
-
-        if self.base_headers:
-            sess.headers.update(self.base_headers)
+        sess.headers.update(self.base_headers)
+        sess.headers.update(headers or {})
 
         if self.bearer_token:
             sess.headers['Authorization'] = f'Bearer {self.bearer_token}'
 
-        if self.base_params:
-            sess.params = self.base_params
+        sess.params.update(self.base_params)
+        sess.params.update(params or {})
+
+        sess.proxies.update(self.proxies or {})
 
         return sess
 
