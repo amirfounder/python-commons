@@ -1,58 +1,17 @@
 from __future__ import annotations
 import contextlib
 import time
-from abc import ABC
-from typing import Optional, Callable, TypeVar, Iterable
+from typing import Callable, TypeVar, Iterable, List
 
 import requests
-from requests import Response, Session
+from requests import Response
 
-from commons.logging import log_info
-from commons.rest_api.http_exceptions import BadGatewayException
 from commons.threads import ThreadWrapper, start_threads, join_threads
 
 _T = TypeVar('_T')
 
 
-class BoilerplateFunctionsMixin(ABC):
-
-    def make_get_function(self, http_client: HttpRestClient, session: Session):
-        def _func():
-            url = http_client.make_url()
-            return session.get(url)
-
-        return _func
-
-    def make_get_by_id_function(self, http_client: HttpRestClient, session: Session, id_: int):
-        def _func():
-            url = http_client.make_url(id_)
-            return session.get(url)
-
-        return _func
-
-    def make_post_function(self, http_client: HttpRestClient, session: Session, json: dict):
-        def _func():
-            url = http_client.make_url()
-            return session.post(url, json=json)
-
-        return _func
-
-    def make_put_function(self, http_client: HttpRestClient, session: Session, json: dict):
-        def _func():
-            url = http_client.make_url(json['id'])
-            return session.put(url, json=json)
-
-        return _func
-
-    def make_delete_function(self, http_client: HttpRestClient, session: Session, id_: int):
-        def _func():
-            url = http_client.make_url(id_)
-            return session.delete(url)
-
-        return _func
-
-
-class HttpRestClient(BoilerplateFunctionsMixin):
+class HttpRestClient:
     def __init__(
             self,
             base_url: str = None,
@@ -71,6 +30,7 @@ class HttpRestClient(BoilerplateFunctionsMixin):
         self.bearer_token = bearer_token
         self.base_retry_count = base_retry_count
         self.base_retry_delay = base_retry_delay
+        self.on_exception_hook = None
 
     def execute(
             self,
@@ -83,14 +43,24 @@ class HttpRestClient(BoilerplateFunctionsMixin):
         retry_delay = retry_delay or self.base_retry_delay
 
         for i in range(retry_count):
+
             try:
                 response = executable()
                 response.raise_for_status()
                 return response
 
             except Exception as e:
-                if i == retry_count - 1:
-                    raise e
+                if self.on_exception_hook:
+                    self.on_exception_hook({
+                        'current_retry_idx': i,
+                        'exception': e,
+                        'retry_count': retry_count,
+                        'retry_delay': retry_delay,
+                    })
+
+                else:
+                    if i == retry_count - 1:
+                        raise e
                 time.sleep(retry_delay * (i + 1))
 
     def execute_in_thread_pool(
@@ -99,7 +69,7 @@ class HttpRestClient(BoilerplateFunctionsMixin):
             *,
             retry_count: int = 3,
             max_threads: int = 25
-    ) -> requests.Response:
+    ) -> List[requests.Response]:
         threads = []
 
         for func in funcs:
@@ -112,8 +82,12 @@ class HttpRestClient(BoilerplateFunctionsMixin):
         start_threads(threads, max_threads=max_threads)
         join_threads(threads)
 
+        results = []
+
         for t in threads:
-            yield t.result
+            results.append(t.result)
+
+        return results
 
     def make_url(self, append_suffix: str | int = None):
         url = self.base_url
