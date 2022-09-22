@@ -1,9 +1,11 @@
+from __future__ import annotations
 import contextlib
 import time
+from abc import ABC
 from typing import Optional, Callable, TypeVar, Iterable
 
 import requests
-from requests import Response
+from requests import Response, Session
 
 from commons.logging import log_info
 from commons.rest_api.http_exceptions import BadGatewayException
@@ -12,7 +14,45 @@ from commons.threads import ThreadWrapper, start_threads, join_threads
 _T = TypeVar('_T')
 
 
-class HttpRestClient:
+class BoilerplateFunctionsMixin(ABC):
+
+    def make_get_function(self, http_client: HttpRestClient, session: Session):
+        def _func():
+            url = http_client.make_url()
+            return session.get(url)
+
+        return _func
+
+    def make_get_by_id_function(self, http_client: HttpRestClient, session: Session, id_: int):
+        def _func():
+            url = http_client.make_url(id_)
+            return session.get(url)
+
+        return _func
+
+    def make_post_function(self, http_client: HttpRestClient, session: Session, json: dict):
+        def _func():
+            url = http_client.make_url()
+            return session.post(url, json=json)
+
+        return _func
+
+    def make_put_function(self, http_client: HttpRestClient, session: Session, id_: int, json: dict):
+        def _func():
+            url = http_client.make_url(id_)
+            return session.put(url, json=json)
+
+        return _func
+
+    def make_delete_function(self, http_client: HttpRestClient, session: Session, id_: int):
+        def _func():
+            url = http_client.make_url(id_)
+            return session.delete(url)
+
+        return _func
+
+
+class HttpRestClient(BoilerplateFunctionsMixin):
     def __init__(
             self,
             base_url: str = None,
