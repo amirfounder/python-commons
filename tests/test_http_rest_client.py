@@ -62,8 +62,26 @@ class TestHTTPRestClient(unittest.TestCase):
 
         client.execute_in_thread_pool(funcs, max_threads=20)
 
-    def test(self):
+    def test_execute_in_thread_pool(self):
         client = HttpRestClient(base_url='http://localhost:8000')
-        with client.make_session_ctx() as sess:
-            url = client.make_url(append_suffix='/1')
-            sess.get(url)
+        sess = client.make_session()
+        funcs = []
+
+        dummy_response = Response()
+        dummy_response.status_code = 200
+        dummy_response.raise_for_status = MagicMock(return_value=None)
+
+        mock_gets = []
+
+        for i in range(20):
+            def func():
+                with patch.object(sess, 'get', return_value=dummy_response) as mock_get:
+                    mock_gets.append(mock_get)
+                    url = client.make_url(append_suffix=f'/1')
+                    return sess.get(url)
+            funcs.append(func)
+
+        client.execute_in_thread_pool(funcs, max_threads=20)
+
+        assert len(mock_gets) == 20
+        assert all([mock_get.call_count == 1 for mock_get in mock_gets])

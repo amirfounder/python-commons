@@ -1,4 +1,5 @@
 import threading
+import time
 from random import randint
 from threading import Thread as _Thread
 from typing import Iterable
@@ -37,22 +38,19 @@ def run_in_separate_thread(target, *args, **kwargs):
     return wrapper
 
 def start_threads(threads: Iterable[_Thread | ThreadWrapper], max_threads: int = 10, name_prefix: str = ''):
-    threads_iter = iter(threads)
     name_prefix += f'{randint(0, 1000000)}_'
     name_suffix = 1
 
-    while active_count_by_name_prefix(name_prefix) < max_threads:
-        try:
-            thread = next(threads_iter)
-            thread.name += name_suffix
-            name_suffix += 1
+    for thread in threads:
+        while active_count_by_name_prefix(name_prefix) >= max_threads:
+            time.sleep(1)
 
-            if isinstance(thread, ThreadWrapper):
-                thread = thread.thread
+        if isinstance(thread, ThreadWrapper):
+            thread = thread.thread
 
-            thread.start()
-        except StopIteration:
-            break
+        thread.name = f'{name_prefix}{name_suffix}'
+        name_suffix += 1
+        thread.start()
 
 
 def join_threads(threads: Iterable[_Thread | ThreadWrapper]):
