@@ -91,6 +91,11 @@ class HttpRestClient:
         return url
 
     @contextlib.contextmanager
+    def make_session_ctx(self, headers: dict = None, params: dict = None):
+        session = self.make_session(headers=headers, params=params)
+        yield session
+        session.close()
+
     def make_session(self, headers: dict = None, params: dict = None):
         sess = requests.Session()
 

@@ -61,3 +61,9 @@ class TestHTTPRestClient(unittest.TestCase):
             funcs.append(_func)
 
         client.execute_in_thread_pool(funcs, max_threads=20)
+
+    def test(self):
+        client = HttpRestClient(base_url='http://localhost:8000')
+        with client.make_session_ctx() as sess:
+            url = client.make_url(append_suffix='/1')
+            sess.get(url)
