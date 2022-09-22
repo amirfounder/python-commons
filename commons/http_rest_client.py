@@ -37,9 +37,9 @@ class BoilerplateFunctionsMixin(ABC):
 
         return _func
 
-    def make_put_function(self, http_client: HttpRestClient, session: Session, id_: int, json: dict):
+    def make_put_function(self, http_client: HttpRestClient, session: Session, json: dict):
         def _func():
-            url = http_client.make_url(id_)
+            url = http_client.make_url(json['id'])
             return session.put(url, json=json)
 
         return _func
