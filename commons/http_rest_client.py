@@ -110,9 +110,7 @@ class HttpRestClient:
 
         sess.proxies.update(self.proxies or {})
 
-        yield sess
-
-        sess.close()
+        return sess
 
 
 class _DeprecatedHttpRestClient:
