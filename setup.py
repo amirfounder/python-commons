@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='commons',
-    version='0.0.93',
+    version='0.0.94',
     packages=find_packages(),
     install_requires=[
         'mss~=6.1.0',
@@ -13,7 +13,7 @@ setup(
         'pydantic~=1.9.1',
         'orjson~=3.7.2',
         'fastapi~=0.78.0',
-        'requests~=2.26.0',
+        'requests~=2.28.1',
         'sqlalchemy~=1.4.27',
         'psycopg2~=2.9.1',
     ]
