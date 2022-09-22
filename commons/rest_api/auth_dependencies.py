@@ -12,5 +12,6 @@ def get_referer():
 
 def get_bearer_token():
     def dependency(token: HTTPAuthorizationCredentials = Depends(http_bearer)):
-        return token.credentials
+        if token:
+            return token.credentials
     return Depends(dependency)
