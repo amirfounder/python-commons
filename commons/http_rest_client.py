@@ -73,10 +73,11 @@ class HttpRestClient:
         threads = []
 
         for func in funcs:
-            def _func():
-                return self.execute(func, retry_count=retry_count)
-
-            t = ThreadWrapper(target=_func)
+            t = ThreadWrapper(
+                target=self.execute,
+                args=(func,),
+                kwargs={'retry_count': retry_count}
+            )
             threads.append(t)
 
         start_threads(threads, max_threads=max_threads)
