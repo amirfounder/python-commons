@@ -84,8 +84,8 @@ class HttpRestClient:
         if append_suffix:
             if not isinstance(append_suffix, str):
                 append_suffix = str(append_suffix)
-            if not url.startswith('/'):
-                url = '/' + url
+            if not append_suffix.startswith('/'):
+                append_suffix = '/' + append_suffix
             url += append_suffix
 
         return url
