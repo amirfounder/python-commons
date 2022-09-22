@@ -1,3 +1,4 @@
+import contextlib
 import time
 from typing import Optional, Callable, TypeVar, Iterable
 
@@ -89,6 +90,7 @@ class HttpRestClient:
 
         return url
 
+    @contextlib.contextmanager
     def make_session(self, headers: dict = None, params: dict = None):
         sess = requests.Session()
 
@@ -103,7 +105,9 @@ class HttpRestClient:
 
         sess.proxies.update(self.proxies or {})
 
-        return sess
+        yield sess
+
+        sess.close()
 
 
 class _DeprecatedHttpRestClient:
