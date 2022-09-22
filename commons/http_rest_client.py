@@ -18,6 +18,7 @@ class HttpRestClient(Generic[_T]):
             base_params=None,
             bl_model_class=None,
             retry_count: int = 3,
+            bearer_token: str = None
     ):
         self.base_url = base_url
         self.base_params = base_params or {}
@@ -25,7 +26,7 @@ class HttpRestClient(Generic[_T]):
         self.retry_count = retry_count
         self.bl_model_class = bl_model_class
 
-        self.bearer_token = None
+        self.bearer_token = bearer_token
         self.retry_logs = {}
 
     def before_request(self, func: Callable, args, kwargs):
