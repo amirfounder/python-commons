@@ -84,7 +84,7 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url, 'params': params})
         return self._execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-    def get_by_id(self, resource_id: int, *, endpoint_suffix: str = None, **kwargs):
+    def get_by_id(self, resource_id: int, *, endpoint_suffix: str = '', **kwargs):
         if resource_id is None:
             raise Exception('ID cannot be None')
 
@@ -92,7 +92,7 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url})
         return self._execute_request(func=requests.get, args=(), kwargs=kwargs)
 
-    def put(self, json: Optional[dict] = None, *, endpoint_suffix: str = None, **kwargs):
+    def put(self, json: Optional[dict] = None, *, endpoint_suffix: str = '', **kwargs):
         if 'id' not in json:
             raise Exception('ID not provided')
         if json['id'] is None:
@@ -102,12 +102,12 @@ class HttpRestClient(Generic[_T]):
         kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.put, args=(), kwargs=kwargs)
 
-    def post(self, json: Optional[dict] = None, *, endpoint_suffix: str = None, **kwargs):
+    def post(self, json: Optional[dict] = None, *, endpoint_suffix: str = '', **kwargs):
         url = f'{self.base_url}{endpoint_suffix}'
         kwargs.update({'url': url, 'json': json})
         return self._execute_request(func=requests.post, args=(), kwargs=kwargs)
 
-    def delete(self, resource_id: int, *, endpoint_suffix: str = None, **kwargs):
+    def delete(self, resource_id: int, *, endpoint_suffix: str = '', **kwargs):
         url = f'{self.base_url}{endpoint_suffix}/{resource_id}'
         kwargs.update({'url': url})
         return self._execute_request(func=requests.delete, args=(), kwargs=kwargs)
