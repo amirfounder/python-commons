@@ -48,6 +48,7 @@ class HttpRestClient(Generic[_T]):
         for i in range(3):
             try:
                 response = func(*args, **kwargs)
+                response.raise_for_status()
                 is_success = True
                 break
 
