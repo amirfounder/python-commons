@@ -23,7 +23,11 @@ class BaseDao(ABC, Generic[_T]):
             BaseBLModel: lambda model_: self.db_model_class(**model_.dict()),
             BaseDBModel: lambda model_: self.bl_model_class.from_orm(model_),
         }
-        return _m[type(model)](model)
+        for k, v in _m.items():
+            if isinstance(model, k):
+                return v(model)
+        
+        raise Exception("Could not cast model")
 
     def _create_session(self):
         return Session(self.engine)
@@ -51,7 +55,7 @@ class BaseDao(ABC, Generic[_T]):
         return query
 
     def _model_has_column(self, key: str):
-        return key in self.db_model_class.__fields__
+        return key in self.db_model_class.get_column_names()
 
     def _assert_model_has_column(self, key: str):
         if not self._model_has_column(key):
@@ -83,7 +87,7 @@ class BaseDao(ABC, Generic[_T]):
         query = self._apply_ordering(query, order_by)
 
         cursor_result = db_session.execute(query)
-        results = cursor_result.scalar().all()
+        results = cursor_result.scalars().all()
         return [self._cast_model(res) for res in results]
 
     def get_all_by_field(
@@ -255,11 +259,12 @@ class BaseDao(ABC, Generic[_T]):
 
     def count_by_filter(
             self,
-            filters: dict,
+            filters: dict = None,
             db_session: Session = None,
             *,
             include_soft_deleted: bool = False,
     ) -> int:
+        filters = filters or {}
 
         if db_session is None:
             db_session = self._create_session()
@@ -275,11 +280,12 @@ class BaseDao(ABC, Generic[_T]):
 
     def exists_by_filter(
             self,
-            filters: dict,
+            filters: dict = None,
             db_session: Session = None,
             *,
             include_soft_deleted: bool = False
     ) -> bool:
+        filters = filters or {}
 
         if db_session is None:
             db_session = self._create_session()
