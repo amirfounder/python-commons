@@ -7,7 +7,7 @@ class BaseCRUDService(Generic[_T]):
     _cached_resource_validator = None
 
     @classmethod
-    def get_validator(cls) -> ModelValidator:
+    def validator(cls) -> ModelValidator:
         if cls._cached_resource_validator is None:
             cls._cached_resource_validator = cls.resource_validator_class(cls.resource_dao_class)
         return cls._cached_resource_validator
@@ -48,7 +48,7 @@ class BaseCRUDService(Generic[_T]):
         model = next(iter(models), None)
 
         if not model:
-            validator = cls.get_validator()
+            validator = cls.validator()
             validator.raise_not_exists({field: value})
 
         return model
@@ -59,7 +59,7 @@ class BaseCRUDService(Generic[_T]):
         model = cls.resource_dao_class.get_by_id(resource_id, additional_filters)
 
         if not model:
-            validation_service = cls.get_validator()
+            validation_service = cls.validator()
             validation_service.raise_not_exists({'id': resource_id})
 
         return model
@@ -78,7 +78,7 @@ class BaseCRUDService(Generic[_T]):
 
     @classmethod
     def update(cls, resource_id: int, model: _T) -> _T:
-        resource_validator = cls.get_validator()
+        resource_validator = cls.validator()
         resource_validator.validate_resource_id_matches_model(resource_id, model)
         resource_validator.validate_resource_id_exists(resource_id)
 
@@ -89,7 +89,7 @@ class BaseCRUDService(Generic[_T]):
         obj_to_update = cls.resource_dao_class.get_by_id_raw(resource_id)
 
         if not obj_to_update:
-            validation_service = cls.get_validator()
+            validation_service = cls.validator()
             validation_service.raise_not_exists({'id': resource_id})
 
         for k, v in partial_model.items():
@@ -107,7 +107,7 @@ class BaseCRUDService(Generic[_T]):
         model_exists = cls.resource_dao_class.exists(resource_id)
 
         if not model_exists:
-            validation_service = cls.get_validator()
+            validation_service = cls.validator()
             validation_service.raise_not_exists({'id': resource_id})
 
         return cls.resource_dao_class.delete(resource_id, hard=hard)
