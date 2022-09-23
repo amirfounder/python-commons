@@ -1,247 +1,296 @@
 from __future__ import annotations
 
-from typing import Type, Generic, TypeVar, Optional, Iterable, Generator, Dict, List, Any
+from abc import ABC
+from datetime import datetime
+from typing import Type, Generic, TypeVar, Optional, Iterable, List, Any
 
-from commons.datetime import now
-from sqlalchemy import insert, update, select, exists, func, delete
-from sqlalchemy.engine import CursorResult, Engine
-from sqlalchemy.orm import DeclarativeMeta
+from sqlalchemy import update, select, exists, func, delete
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
-from commons.rest_api.base_model import BaseBLModel
+from commons.rest_api.base_model import BaseBLModel, BaseDBModel
 
 _T = TypeVar('_T', bound=BaseBLModel)
 
 
-class BaseDao(Generic[_T]):
-    resource_bl_model_class: Type[_T]
-    resource_db_model_class: Type[Type[DeclarativeMeta]]
-    engine: Engine
+class BaseDao2(ABC, Generic[_T]):
+    bl_model_class: Type[BaseBLModel] = None
+    db_model_class: Type[BaseDBModel] = None
 
-    @classmethod
-    def _model_to_obj(cls, model: _T) -> Dict:
-        return model.dict()
+    def __init__(self, engine: Engine):
+        self.engine = engine
 
-    @classmethod
-    def _obj_to_model(cls, obj: Dict) -> _T:
-        return cls.resource_bl_model_class(**obj)
+    def _cast_model(self, model: BaseBLModel | BaseDBModel):
+        _m = {
+            BaseBLModel: lambda model_: self.db_model_class(**model_.dict()),
+            BaseDBModel: lambda model_: self.bl_model_class.from_orm(model_),
+        }
+        return _m[type(model)](model)
 
-    @classmethod
-    def _objs_to_models(cls, objs: List[Dict]) -> List[_T]:
-        return [cls._obj_to_model(obj) for obj in objs]
+    def _create_session(self):
+        return Session(self.engine)
 
-    @classmethod
-    def _models_to_objs(cls, models: List[_T]) -> List[Dict]:
-        return [cls._model_to_obj(model) for model in models]
-
-    @classmethod
-    def _prepare_for_create(cls, obj: dict):
-        now_ = now()
-        obj.pop('id', None)
-        obj['created_at'] = now_
-        obj['updated_at'] = now_
-
-    @classmethod
-    def _prepare_for_update(cls, obj: dict):
-        obj['updated_at'] = now()
-
-    @classmethod
-    def _apply_filters_to_query(cls, query, filters: dict):
-        filter_clauses = []
-        for k, v in filters.items():
-            if attr := getattr(cls.resource_db_model_class, k, None):
-                filter_clauses.append((attr, v))
-
-        for attr, value in filter_clauses:
-            is_value_list = isinstance(value, list)
-            clause = attr.in_(value) if is_value_list else attr == value
-            query = query.where(clause)
-
+    def _apply_filters(self, query, filters: dict):
+        for key, value, in filters.items():
+            if attr := getattr(self.db_model_class, key, None):
+                query = query.where(attr.in_(value) if isinstance(value, list) else attr == value)
         return query
 
-    @classmethod
-    def _apply_offset_limit_to_query(cls, query, offset: int = None, limit: int = None):
+    def _apply_ordering(self, query, ordering: dict):
+        for key, value in ordering.items():
+            if attr := getattr(self.db_model_class, key, None):
+                query = query.order_by(attr.desc() if value == 'desc' else attr.asc())
+        return query
+
+    def _apply_offset(self, query, offset: int):
         if offset:
             query = query.offset(offset)
-        if limit:
-            query = query.limit(limit)
-
         return query
 
-    @classmethod
-    def get_all_raw(cls, filters: dict = None, **kwargs) -> Generator[dict, None, None]:
-        if filters is None:
-            filters = {}
+    def _apply_limit(self, query, limit: int):
+        if limit:
+            query = query.limit(limit)
+        return query
 
-        query = select(cls.resource_db_model_class)
-        query = cls._apply_filters_to_query(query, filters)
-        query = cls._apply_offset_limit_to_query(query, kwargs.get('offset'), kwargs.get('limit'))
-        query = query.order_by(cls.resource_db_model_class.id.asc())
+    def _model_has_column(self, key: str):
+        return key in self.db_model_class.__fields__
 
-        with cls.engine.connect() as conn:
-            result: CursorResult = conn.execute(query)
-            conn.commit()
+    def _assert_model_has_column(self, key: str):
+        if not self._model_has_column(key):
+            raise ValueError(f'Field {key} does not exist in {self.db_model_class.__name__}')
 
-        for row in result:
-            obj = dict(row)
-            yield obj
+    def get_all(
+            self,
+            filters: dict = None,
+            db_session: Session = None,
+            *,
+            offset: int = None,
+            limit: int = None,
+            order_by: dict = None,
+            include_soft_deleted: bool = False,
+    ) -> List[_T]:
 
-    @classmethod
-    def get_all(cls, filters: dict = None, **kwargs) -> Generator[_T, None, None]:
-        objs = cls.get_all_raw(filters=filters, **kwargs)
-        for obj in objs:
-            yield cls._obj_to_model(obj)
+        order_by = order_by or {'id': 'asc'}
 
-    @classmethod
-    def get_by_id_raw(cls, resource_id: int, additional_filters: Optional[dict] = None) -> Optional[dict]:
-        filters = {
-            'id': resource_id,
-            'deleted_at': None
-        }
+        if db_session is None:
+            db_session = self._create_session()
 
-        if additional_filters:
-            filters.update(additional_filters)
+        if not include_soft_deleted:
+            filters['deleted_at'] = None
 
-        models = cls.get_all_raw(filters)
-        return next(models, None)
+        query = select(self.db_model_class)
+        query = self._apply_filters(query, filters or {})
+        query = self._apply_offset(query, offset)
+        query = self._apply_limit(query, limit)
+        query = self._apply_ordering(query, order_by)
 
-    @classmethod
-    def get_by_id(cls, resource_id: int, additional_filters: Optional[dict] = None) -> Optional[_T]:
-        if obj := cls.get_by_id_raw(resource_id, additional_filters):
-            return cls._obj_to_model(obj)
+        cursor_result = db_session.execute(query)
+        results = cursor_result.scalar().all()
+        return [self._cast_model(res) for res in results]
 
-    @classmethod
-    def get_all_by_field_raw(cls):
-        pass
+    def get_all_by_field(
+            self,
+            field: str,
+            value: Any,
+            db_session: Session = None,
+            *,
+            filters: dict = None,
+            offset: int = None,
+            limit: int = None,
+            order_by: dict = {},
+            include_soft_deleted: bool = False,
+    ) -> List[_T]:
 
-    @classmethod
-    def get_all_by_field(cls):
-        pass
+        self._assert_model_has_column(field)
 
-    @classmethod
-    def get_one_by_field_raw(cls):
-        pass
+        filters = filters or {}
+        filters[field] = value
 
-    @classmethod
-    def get_one_by_field(cls):
-        pass
+        return self.get_all(
+            filters=filters,
+            db_session=db_session,
+            offset=offset,
+            limit=limit,
+            order_by=order_by,
+            include_soft_deleted=include_soft_deleted,
+        )
 
-    @classmethod
-    def create_raw(cls, obj: dict) -> dict:
-        cls._prepare_for_create(obj)
-        cls.resource_db_model_class.clean_obj(obj)
+    def get_one_by_field(
+            self,
+            field: str,
+            value: Any,
+            db_session: Session = None,
+            *,
+            filters: dict = None,
+            offset: int = None,
+            limit: int = None,
+            order_by: dict = {},
+            include_soft_deleted: bool = False,
+    ) -> Optional[_T]:
 
-        query = insert(cls.resource_db_model_class).values(**obj)
+        results = self.get_all_by_field(
+            field,
+            value,
+            filters=filters,
+            db_session=db_session,
+            offset=offset,
+            limit=limit,
+            order_by=order_by,
+            include_soft_deleted=include_soft_deleted,
+        )
 
-        with cls.engine.connect() as conn:
-            result = conn.execute(query)
-            conn.commit()
+        return next(iter(results), None)
 
-        obj['id'] = result.inserted_primary_key[0]
-        return obj
+    def get_by_id(
+            self,
+            model_id: int,
+            db_session: Session = None,
+            filters: dict = None,
+            *,
+            include_soft_deleted: bool = False,
+    ) -> Optional[_T]:
 
-    @classmethod
-    def create(cls, model: _T) -> _T:
-        obj = cls._model_to_obj(model)
-        obj = cls.create_raw(obj)
-        return cls._obj_to_model(obj)
+        return self.get_one_by_field(
+            'id',
+            model_id,
+            db_session=db_session,
+            filters=filters,
+            include_soft_deleted=include_soft_deleted,
+        )
 
-    @classmethod
-    def create_many_raw(cls, objs: Iterable[dict]) -> Generator[dict, None, None]:
-        for obj in objs:
-            cls._prepare_for_create(obj)
+    def create(self, model: _T, db_session: Session = None, *, commit: bool = True) -> _T:
 
-        with cls.engine.connect() as conn:
-            for obj in objs:
-                cls.resource_db_model_class.clean_obj(obj)
-                query = insert(cls.resource_db_model_class).values(**obj)
-                result = conn.execute(query)
-                obj['id'] = result.inserted_primary_key[0]
+        if db_session is None:
+            db_session = self._create_session()
 
-            conn.commit()
+        db_model = self._cast_model(model)
+        db_session.add(db_model)
 
-        for obj in objs:
-            yield obj
+        if commit:
+            db_session.commit()
 
-    @classmethod
-    def create_many(cls, models: List[_T]) -> Generator[_T, None, None]:
-        objs = cls._models_to_objs(models)
-        objs = cls.create_many_raw(objs)
-        for obj in objs:
-            yield cls._obj_to_model(obj)
+        return self._cast_model(db_model)
 
-    @classmethod
-    def update_raw(cls, obj: Dict) -> Dict:
-        cls._prepare_for_update(obj)
-        cls.resource_db_model_class.clean_obj(obj)
+    def create_many(self, models: Iterable[_T], db_session: Session = None, *, commit: bool = True) -> List[_T]:
 
-        query = update(cls.resource_db_model_class).values(**obj)
-        query = query.where(cls.resource_db_model_class.id == obj['id'])
+        if db_session is None:
+            db_session = self._create_session()
 
-        with cls.engine.connect() as conn:
-            conn.execute(query)
-            conn.commit()
+        db_models = [self._cast_model(model) for model in models]
+        db_session.add_all(db_models)
 
-        return obj
+        if commit:
+            db_session.commit()
 
-    @classmethod
-    def update(cls, model: _T) -> _T:
-        obj = cls._model_to_obj(model)
-        obj = cls.update_raw(obj)
-        return cls._obj_to_model(obj)
+        return [self._cast_model(db_model) for db_model in db_models]
 
-    @classmethod
-    def exists(cls, resource_id: int):
-        return cls.exists_by_field('id', resource_id)
+    def update(self, model: _T, db_session: Session = None, *, commit: bool = True) -> _T:
 
-    @classmethod
-    def exists_by_field(cls, field: str, value: Any):
-        return cls.exists_by_filter({field: value})
+        if db_session is None:
+            db_session = self._create_session()
 
-    @classmethod
-    def exists_by_filter(cls, filters: dict):
-        with cls.engine.connect() as conn:
-            query = select(cls.resource_db_model_class)
-            query = cls._apply_filters_to_query(query, filters)
-            query = select(exists(query))
+        db_model = self._cast_model(model)
+        db_session.merge(db_model)
 
-            result = conn.execute(query)
-            conn.commit()
+        if commit:
+            db_session.commit()
 
-        return result.scalar()
+        return self._cast_model(db_model)
 
-    @classmethod
-    def count(cls, filters: dict = None) -> int:
-        if filters is None:
-            filters = {}
+    def delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
 
-        query = select(func.count(cls.resource_db_model_class.id))
-        query = cls._apply_filters_to_query(query, filters)
+        if db_session is None:
+            db_session = self._create_session()
 
-        with cls.engine.connect() as conn:
-            result = conn.execute(query)
-            conn.commit()
+        db_model = self._cast_model(model)
+        db_session.delete(db_model)
 
-        return result.scalar()
+        if commit:
+            db_session.commit()
 
-    @classmethod
-    def delete(cls, resource_id: int, *, hard: bool = False) -> None:
-        if hard:
-            return cls.hard_delete(resource_id)
-        return cls.soft_delete(resource_id)
+    def delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
 
-    @classmethod
-    def soft_delete(cls, resource_id: int):
-        model: _T = cls.get_by_id(resource_id)
+        model = self.get_by_id(model_id, db_session=db_session)
+        self.delete(model, db_session=db_session, commit=commit)
 
-        if not model:
-            return
+    def _hard_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+        query = (
+            delete(self.db_model_class)
+            .where(self.db_model_class.id == model_id)
+        )
+        db_session.execute(query)
+        if commit:
+            db_session.commit()
 
-        model.deleted_at = now()
-        cls.update(model)
+    def _soft_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+        query = (
+            update(self.db_model_class)
+            .where(self.db_model_class.id == model_id)
+            .values(deleted_at=datetime.utcnow())
+        )
+        db_session.execute(query)
+        if commit:
+            db_session.commit()
 
-    @classmethod
-    def hard_delete(cls, resource_id: int):
-        with cls.engine.connect() as conn:
-            query = delete(cls.resource_db_model_class).where(cls.resource_db_model_class.id == resource_id)
-            conn.execute(query)
-            conn.commit()
+    def count_by_filter(
+            self,
+            filters: dict,
+            db_session: Session = None,
+            *,
+            include_soft_deleted: bool = False,
+    ) -> int:
+
+        if db_session is None:
+            db_session = self._create_session()
+
+        if not include_soft_deleted:
+            filters['deleted_at'] = None
+
+        query = select(func.count(self.db_model_class.id))
+        query = self._apply_filters(query, filters)
+
+        cursor_result = db_session.execute(query)
+        return cursor_result.scalar()
+
+    def exists_by_filter(
+            self,
+            filters: dict,
+            db_session: Session = None,
+            *,
+            include_soft_deleted: bool = False
+    ) -> bool:
+
+        if db_session is None:
+            db_session = self._create_session()
+
+        if not include_soft_deleted:
+            filters['deleted_at'] = None
+
+        query = select(self.db_model_class)
+        query = self._apply_filters(query, filters)
+        query = select(exists(query))
+
+        cursor_result = db_session.execute(query)
+        return cursor_result.scalar().first() is not None
+
+    def exists_by_field(
+            self,
+            field: str,
+            value: Any,
+            db_session: Session = None,
+            *,
+            include_soft_deleted: bool = False
+    ) -> bool:
+        return self.exists_by_filter(
+            {field: value},
+            db_session=db_session,
+            include_soft_deleted=include_soft_deleted,
+        )
+
+    def exists_by_id(self, model_id: int, db_session: Session = None, *, include_soft_deleted: bool = False) -> bool:
+        return self.exists_by_field(
+            'id',
+            model_id,
+            db_session=db_session,
+            include_soft_deleted=include_soft_deleted,
+        )
