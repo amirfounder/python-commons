@@ -7,7 +7,7 @@ from commons.rest_api.base_dao import BaseDao
 from commons.rest_api.http_exceptions import ConflictException, NotFoundException
 
 
-class BaseResourceValidator:
+class ModelValidator:
     dao = None
 
     def __init__(self, dao: BaseDao):

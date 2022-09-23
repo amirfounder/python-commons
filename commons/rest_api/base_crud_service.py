@@ -7,7 +7,7 @@ from commons.logging import log_warning
 from commons.rest_api.pagination import PaginationOptions, PaginatedResults
 from commons.rest_api.base_dao import BaseDao
 from commons.rest_api.base_model import BaseBLModel
-from commons.rest_api.base_resource_validator import BaseResourceValidator
+from commons.rest_api.base_resource_validator import ModelValidator
 
 _T = TypeVar('_T', bound=BaseBLModel)
 
@@ -15,10 +15,10 @@ _T = TypeVar('_T', bound=BaseBLModel)
 class BaseCrudService(Generic[_T]):
     bl_model_class: Type[_T]
     dao_class: Type[BaseDao[_T]]
-    validator_class: Type[BaseResourceValidator]
+    validator_class: Type[ModelValidator]
     __cache = {}
 
-    def get_validator(self) -> BaseResourceValidator:
+    def get_validator(self) -> ModelValidator:
         key = 'validator'
         if key not in self.__cache:
             self.__cache[key] = self.validator_class(self.get_dao())

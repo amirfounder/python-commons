@@ -2,12 +2,12 @@
 class BaseCRUDService(Generic[_T]):
     resource_bl_model_class: Type[_T]
     resource_dao_class: Type[BaseDao[_T]]
-    resource_validator_class: Type[BaseResourceValidator] = BaseResourceValidator
+    resource_validator_class: Type[ModelValidator] = ModelValidator
 
     _cached_resource_validator = None
 
     @classmethod
-    def get_validator(cls) -> BaseResourceValidator:
+    def get_validator(cls) -> ModelValidator:
         if cls._cached_resource_validator is None:
             cls._cached_resource_validator = cls.resource_validator_class(cls.resource_dao_class)
         return cls._cached_resource_validator
