@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='commons',
-    version='0.0.109',
+    version='0.0.110',
     packages=find_packages(),
     install_requires=[
         'mss~=6.1.0',

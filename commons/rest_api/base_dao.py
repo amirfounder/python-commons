@@ -13,12 +13,10 @@ from commons.rest_api.base_model import BaseBLModel, BaseDBModel
 _T = TypeVar('_T', bound=BaseBLModel)
 
 
-class BaseDao2(ABC, Generic[_T]):
+class BaseDao(ABC, Generic[_T]):
     bl_model_class: Type[BaseBLModel] = None
     db_model_class: Type[BaseDBModel] = None
-
-    def __init__(self, engine: Engine):
-        self.engine = engine
+    engine: Engine
 
     def _cast_model(self, model: BaseBLModel | BaseDBModel):
         _m = {
@@ -197,7 +195,13 @@ class BaseDao2(ABC, Generic[_T]):
 
         return self._cast_model(db_model)
 
-    def delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
+    def delete(self, model: _T, db_session: Session = None, *, commit: bool = True, hard_delete: bool = False) -> None:
+        if hard_delete:
+            self.hard_delete(model, db_session=db_session, commit=commit)
+        else:
+            self.soft_delete(model, db_session=db_session, commit=commit)
+
+    def hard_delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
 
         if db_session is None:
             db_session = self._create_session()
@@ -208,12 +212,29 @@ class BaseDao2(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-    def delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+    def soft_delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
 
-        model = self.get_by_id(model_id, db_session=db_session)
-        self.delete(model, db_session=db_session, commit=commit)
+        if db_session is None:
+            db_session = self._create_session()
 
-    def _hard_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+        model.deleted_at = datetime.utcnow()
+        self.update(model, db_session=db_session, commit=commit)
+
+    def delete_by_id(
+            self,
+            model_id: int,
+            db_session: Session = None,
+            *,
+            commit: bool = True,
+            hard_delete: bool = False
+    ) -> None:
+
+        if hard_delete:
+            self.hard_delete_by_id(model_id, db_session=db_session, commit=commit)
+        else:
+            self.soft_delete_by_id(model_id, db_session=db_session, commit=commit)
+
+    def hard_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
         query = (
             delete(self.db_model_class)
             .where(self.db_model_class.id == model_id)
@@ -222,7 +243,7 @@ class BaseDao2(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-    def _soft_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+    def soft_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
         query = (
             update(self.db_model_class)
             .where(self.db_model_class.id == model_id)

@@ -1,4 +1,6 @@
-from typing import TypeVar, Generic, Type, Generator, Optional, Dict, Any
+from typing import TypeVar, Generic, Type, Generator, Optional, Dict, Any, List
+
+from sqlalchemy.orm import Session
 
 from commons.logging import log_warning
 
@@ -10,115 +12,125 @@ from commons.rest_api.base_resource_validator import BaseResourceValidator
 _T = TypeVar('_T', bound=BaseBLModel)
 
 
-class BaseCRUDService(Generic[_T]):
-    resource_bl_model_class: Type[_T]
-    resource_dao_class: Type[BaseDao[_T]]
-    resource_validator_class: Type[BaseResourceValidator] = BaseResourceValidator
+class BaseCrudService(Generic[_T]):
+    bl_model_class: Type[_T]
+    dao_class: Type[BaseDao[_T]]
+    validator_class: Type[BaseResourceValidator]
+    __cache = {}
 
-    _cached_resource_validator = None
+    def get_validator(self) -> BaseResourceValidator:
+        key = 'validator'
+        if key not in self.__cache:
+            self.__cache[key] = self.validator_class(self.get_dao())
+        return self.__cache[key]
 
-    @classmethod
-    def get_resource_validator(cls) -> BaseResourceValidator:
-        if cls._cached_resource_validator is None:
-            cls._cached_resource_validator = cls.resource_validator_class(cls.resource_dao_class)
-        return cls._cached_resource_validator
+    def get_dao(self) -> BaseDao[_T]:
+        key = 'dao'
+        if key not in self.__cache:
+            self.__cache[key] = self.dao_class()
+        return self.__cache[key]
 
-    @classmethod
-    def get_all(cls, filters: Optional[dict] = None) -> Generator[_T, None, None]:
-        return cls.resource_dao_class.get_all(filters=filters)
-
-    @classmethod
+    def get_all(self, filters: dict = None, db_session: Session = None, **kwargs) -> List[_T]:
+        return self.get_dao().get_all(
+            filters=filters or {},
+            db_session=db_session,
+            **kwargs
+        )
+    
     def get_all_paginated(
-            cls,
+            self,
             filters: dict = None,
             pagination_options: PaginationOptions = None,
+            db_session: Session = None,
+            **kwargs
     ) -> PaginatedResults[_T]:
-
+        
         offset = pagination_options.size * (pagination_options.page - 1)
         limit = pagination_options.size
 
-        results = cls.resource_dao_class.get_all(filters=filters, offset=offset, limit=limit)
-        count = cls.resource_dao_class.count(filters=filters)
+        results = self.get_all(filters=filters, offset=offset, limit=limit, db_session=db_session, **kwargs)
+        count = self.get_dao().count_by_filter(filters=filters)
 
         return PaginatedResults(
-            results=list(results),
+            results=results,
             params=pagination_options.dict(),
             count=count
         )
+    
+    def get_all_by_field(self, field: str, value: Any, db_session: Session = None) -> List[_T]:
+        self.get_validator().assert_field_exists(field)
+        return self.get_dao().get_all_by_field(field, value, db_session=db_session)
 
-    @classmethod
-    def get_all_by_field(cls, field: str, value: Any) -> Generator[_T, None, None]:
-        if field not in cls.resource_bl_model_class.__fields__:
-            raise ValueError(f'Field {field} is not a valid field for model {cls.resource_bl_model_class.__name__}')
+    def get_all_by_field_paginated(
+            self,
+            field: str,
+            value: Any,
+            pagination_options: PaginationOptions = None,
+            db_session: Session = None
+    ) -> PaginatedResults[_T]:
+        self.get_validator().assert_field_exists(field)
+        return self.get_all_paginated(
+            filters={field: value},
+            pagination_options=pagination_options,
+            db_session=db_session
+        )
+    
+    def get_one_by_field(self, field: str, value: Any, db_session: Session = None) -> Optional[_T]:
+        dao = self.get_dao()
+        res = dao.get_one_by_field(field, value, db_session=db_session)
 
-        return cls.get_all(filters={field: value})
+        if res is None:
+            validator = self.get_validator()
+            validator.raise_not_exists_by_field(field, value)
 
-    @classmethod
-    def get_one_by_field(cls, field: str, value: str) -> _T:
-        models = cls.get_all_by_field(field, value)
-        model = next(iter(models), None)
+        return res
+
+    def get_by_id(self, model_id: int, db_session: Session = None, **kwargs) -> Optional[_T]:
+        dao = self.get_dao()
+        res = dao.get_by_id(model_id, db_session=db_session, **kwargs)
+
+        if res is None:
+            validator = self.get_validator()
+            validator.raise_not_exists_by_id(model_id)
+
+        return res
+
+    def exists(self, resource_id: int, db_session: Session = None, **kwargs) -> bool:
+        return self.get_dao().exists_by_id(resource_id, db_session=db_session, **kwargs)
+
+    def create(cls, model: _T, db_session: Session = None, **kwargs) -> _T:
+        return cls.get_dao().create(model, db_session=db_session, **kwargs)
+
+    def create_many(self, models: List[_T], db_session: Session = None, **kwargs) -> List[_T]:
+        return self.get_dao().create_many(models, db_session=db_session, **kwargs)
+
+    def update_by_id(self, resource_id: int, model: _T) -> _T:
+        validator = self.get_validator()
+        validator.assert_id_matches_model(resource_id, model)
+        return self.update(model)
+
+    def update(self, model: _T) -> _T:
+        self.get_validator().assert_id_exists(model.id)
+        return self.get_dao().update(model)
+
+    def partial_update(self, resource_id: int, partial_model: dict) -> _T:
+        model = self.get_by_id(resource_id)
 
         if not model:
-            validator = cls.get_resource_validator()
-            validator.raise_not_exists({field: value})
+            self.get_validator().raise_not_exists_by_id(resource_id)
 
-        return model
+        for key, value in partial_model.items():
+            if hasattr(model, key):
+                setattr(model, key, value)
 
-    @classmethod
-    def get_by_id(cls, resource_id: int, additional_filters: Optional[Dict] = None) -> Optional[_T]:
+        return self.update(model)
 
-        model = cls.resource_dao_class.get_by_id(resource_id, additional_filters)
+    def delete_by_id(self, resource_id: int, db_session: Session, *, hard_delete: bool = False) -> None:
+        validator = self.get_validator()
+        validator.assert_id_exists(resource_id)
 
-        if not model:
-            validation_service = cls.get_resource_validator()
-            validation_service.raise_not_exists({'id': resource_id})
-
-        return model
-
-    @classmethod
-    def exists(cls, resource_id: int) -> bool:
-        return cls.resource_dao_class.exists(resource_id)
-
-    @classmethod
-    def create(cls, model: _T) -> _T:
-        return cls.resource_dao_class.create(model)
-
-    @classmethod
-    def create_many(cls, models: list[_T]) -> Generator[_T, None, None]:
-        return cls.resource_dao_class.create_many(models)
-
-    @classmethod
-    def update(cls, resource_id: int, model: _T) -> _T:
-        resource_validator = cls.get_resource_validator()
-        resource_validator.validate_resource_id_matches_model(resource_id, model)
-        resource_validator.validate_resource_id_exists(resource_id)
-
-        return cls.resource_dao_class.update(model)
-
-    @classmethod
-    def partial_update(cls, resource_id: int, partial_model: dict) -> _T:
-        obj_to_update = cls.resource_dao_class.get_by_id_raw(resource_id)
-
-        if not obj_to_update:
-            validation_service = cls.get_resource_validator()
-            validation_service.raise_not_exists({'id': resource_id})
-
-        for k, v in partial_model.items():
-            if k not in obj_to_update:
-                log_warning(
-                    f'Could not find attribute: {k} in model: {cls.resource_bl_model_class.__name__}. Skipping...')
-            else:
-                obj_to_update[k] = v
-
-        model_to_update = cls.resource_bl_model_class(**obj_to_update)
-        return cls.resource_dao_class.update(model_to_update)
-
-    @classmethod
-    def delete(cls, resource_id: int, *, hard: bool = False) -> None:
-        model_exists = cls.resource_dao_class.exists(resource_id)
-
-        if not model_exists:
-            validation_service = cls.get_resource_validator()
-            validation_service.raise_not_exists({'id': resource_id})
-
-        return cls.resource_dao_class.delete(resource_id, hard=hard)
+        self.get_dao().delete_by_id(
+            resource_id,
+            db_session=db_session,
+            hard_delete=hard_delete
+        )
