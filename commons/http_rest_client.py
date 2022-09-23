@@ -1,6 +1,7 @@
 from __future__ import annotations
 import contextlib
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, TypeVar, Iterable, List
 
 import requests
@@ -68,25 +69,21 @@ class HttpRestClient:
             funcs: Iterable[Callable[[], Response]],
             *,
             retry_count: int = 3,
-            max_threads: int = 25
+            max_threads: int = 20,
+            timeout: int = 60,
     ) -> List[requests.Response]:
-        threads = []
-
-        for func in funcs:
-            t = ThreadWrapper(
-                target=self.execute,
-                args=(func,),
-                kwargs={'retry_count': retry_count}
-            )
-            threads.append(t)
-
-        start_threads(threads, max_threads=max_threads)
-        join_threads(threads)
-
         results = []
 
-        for t in threads:
-            results.append(t.result)
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            futures = set()
+
+            for func in funcs:
+                submitted = executor.submit(self.execute, func, retry_count=retry_count)
+                futures.add(submitted)
+
+            for future in as_completed(futures, timeout=timeout):
+                result = future.result()
+                results.append(result)
 
         return results
 
