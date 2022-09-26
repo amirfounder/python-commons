@@ -54,8 +54,8 @@ class BaseDao(ABC, Generic[_T]):
             query = query.limit(limit)
         return query
 
-    def _model_has_column(self, key: str):
-        return key in self.db_model_class.get_column_names()
+    def _model_has_column(self, key: str) -> bool:
+        return self.db_model_class.has_column(key)
 
     def _assert_model_has_column(self, key: str):
         if not self._model_has_column(key):

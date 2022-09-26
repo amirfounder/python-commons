@@ -3,11 +3,11 @@ from typing import Dict, List, Optional
 
 from pydantic import Extra, BaseModel
 from sqlalchemy import Column, Integer, DateTime
-from sqlalchemy.orm import registry as Registry
+from sqlalchemy.orm import registry as _registry
 
 from commons.datetime import now
 
-registry = Registry()
+registry = _registry()
 Base = registry.generate_base()
 
 
@@ -36,6 +36,11 @@ class BaseDBModel(Base):
         self.created_at = now_
         self.updated_at = now_
         self.from_dict(kwargs)
+        super().__init__()
+
+    @classmethod
+    def has_column(cls, column_name: str) -> bool:
+        return column_name in cls.get_column_names()
 
     @classmethod
     def get_columns(cls) -> List[Column]:
