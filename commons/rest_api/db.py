@@ -5,14 +5,14 @@ from commons.logging import log_error, log_info, log_success
 
 
 def create_connection_string(
-    user: str,
+    db_user: str,
     password: str,
-    hostname: str,
-    port: int,
-    database: str,
+    db_host: str,
+    db_port: int,
+    db_name: str,
     driver: str = 'postgresql',
 ) -> str:
-    return f'{driver}://{user}:{password}@{hostname}:{port}/{database}'
+    return f'{driver}://{db_user}:{password}@{db_host}:{db_port}/{db_name}'
 
 
 def drop_sqlalchemy_schema(engine: Engine) -> None:

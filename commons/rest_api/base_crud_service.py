@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from commons.rest_api.pagination import PaginationOptions, PaginatedResults
 from commons.rest_api.base_dao import BaseDao
 from commons.rest_api.base_model import BaseBLModel
-from commons.rest_api.model_validator import ModelValidator, RecordNotFoundByFiltersError
+from commons.rest_api.model_validator import ModelValidator
 
 _T = TypeVar('_T', bound=BaseBLModel)
 
@@ -43,8 +43,9 @@ class BaseCrudService(Generic[_T]):
         )
     
     def get_all_by_field(self, field: str, value: Any, db_session: Session = None) -> List[_T]:
-        validator = ModelValidator(self.bl_model_class)
-        validator.assert_field_exists_on_model(field).validate()
+        ModelValidator(self.bl_model_class)\
+            .assert_field_exists_on_model(field)\
+            .validate()
 
         return self.dao.get_all_by_field(field, value, db_session=db_session)
 
@@ -55,8 +56,9 @@ class BaseCrudService(Generic[_T]):
             pagination_options: PaginationOptions = None,
             db_session: Session = None
     ) -> PaginatedResults[_T]:
-        validator = ModelValidator(self.bl_model_class)
-        validator.assert_field_exists_on_model(field).validate()
+        ModelValidator(self.bl_model_class)\
+            .assert_field_exists_on_model(field)\
+            .validate()
 
         return self.get_all_paginated(
             filters={field: value},
@@ -68,19 +70,21 @@ class BaseCrudService(Generic[_T]):
         model = self.dao.get_one_by_field(field, value, db_session=db_session)
 
         if model is None:
-            err = RecordNotFoundByFiltersError({field: value})
-            ModelValidator().add_custom_validation_error(err).validate()
+            ModelValidator()\
+                .add_model_not_found_by_field_error(field, value)\
+                .validate()
 
         return model
 
-    def get_by_id(self, model_id: int, db_session: Session = None, **kwargs) -> Optional[_T]:
-        res = self.dao.get_by_id(model_id, db_session=db_session, **kwargs)
+    def get_by_id(self, resource_id: int, db_session: Session = None, **kwargs) -> Optional[_T]:
+        model = self.dao.get_by_id(resource_id, db_session=db_session, **kwargs)
 
-        if res is None:
-            err = RecordNotFoundByFiltersError({'id': model_id})
-            ModelValidator().add_custom_validation_error(err).validate()
+        if model is None:
+            ModelValidator()\
+                .add_model_not_found_by_id_error(resource_id)\
+                .validate()
 
-        return res
+        return model
 
     def exists(self, resource_id: int, db_session: Session = None, **kwargs) -> bool:
         return self.dao.exists_by_id(resource_id, db_session=db_session, **kwargs)
@@ -92,18 +96,26 @@ class BaseCrudService(Generic[_T]):
         return self.dao.create_many(models, db_session=db_session, **kwargs)
 
     def update_by_id(self, resource_id: int, model: _T) -> _T:
-        ModelValidator(model).assert_model_id_matches_path_variable_id(resource_id).validate()
+        ModelValidator(model)\
+            .assert_resource_id_matches_path_variable_id(resource_id)\
+            .validate()
+
         return self.update(model)
 
     def update(self, model: _T) -> _T:
-        ModelValidator(model).assert_record_exists_in_db_by_id().validate()
+        ModelValidator(model)\
+            .assert_model_exists_in_db_by_id()\
+            .validate()
+
         return self.dao.update(model)
 
     def partial_update(self, resource_id: int, partial_model: dict) -> _T:
         model = self.get_by_id(resource_id)
 
         if not model:
-            ModelValidator().add_custom_validation_error(RecordNotFoundByFiltersError({'id': resource_id})).validate()
+            ModelValidator()\
+                .add_model_not_found_by_id_error(resource_id)\
+                .validate()
 
         for key, value in partial_model.items():
             if hasattr(model, key):
@@ -112,7 +124,10 @@ class BaseCrudService(Generic[_T]):
         return self.update(model)
 
     def delete_by_id(self, resource_id: int, db_session: Session, *, hard_delete: bool = False) -> None:
-        ModelValidator().assert_record_exists_in_db_by_id(resource_id).validate()
+        ModelValidator()\
+            .assert_model_exists_in_db_by_id(resource_id)\
+            .validate()
+
         self.dao.delete_by_id(
             resource_id,
             db_session=db_session,

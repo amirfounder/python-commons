@@ -145,7 +145,7 @@ class BaseDao(ABC, Generic[_T]):
 
     def get_by_id(
             self,
-            model_id: int,
+            resource_id: int,
             db_session: Session = None,
             filters: dict = None,
             *,
@@ -154,7 +154,7 @@ class BaseDao(ABC, Generic[_T]):
 
         return self.get_one_by_field(
             'id',
-            model_id,
+            resource_id,
             db_session=db_session,
             filters=filters,
             include_soft_deleted=include_soft_deleted,
@@ -226,7 +226,7 @@ class BaseDao(ABC, Generic[_T]):
 
     def delete_by_id(
             self,
-            model_id: int,
+            resource_id: int,
             db_session: Session = None,
             *,
             commit: bool = True,
@@ -234,23 +234,23 @@ class BaseDao(ABC, Generic[_T]):
     ) -> None:
 
         if hard_delete:
-            self.hard_delete_by_id(model_id, db_session=db_session, commit=commit)
+            self.hard_delete_by_id(resource_id, db_session=db_session, commit=commit)
         else:
-            self.soft_delete_by_id(model_id, db_session=db_session, commit=commit)
+            self.soft_delete_by_id(resource_id, db_session=db_session, commit=commit)
 
-    def hard_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+    def hard_delete_by_id(self, resource_id: int, db_session: Session = None, *, commit: bool = True) -> None:
         query = (
             delete(self.db_model_class)
-            .where(self.db_model_class.id == model_id)
+            .where(self.db_model_class.id == resource_id)
         )
         db_session.execute(query)
         if commit:
             db_session.commit()
 
-    def soft_delete_by_id(self, model_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+    def soft_delete_by_id(self, resource_id: int, db_session: Session = None, *, commit: bool = True) -> None:
         query = (
             update(self.db_model_class)
-            .where(self.db_model_class.id == model_id)
+            .where(self.db_model_class.id == resource_id)
             .values(deleted_at=datetime.utcnow())
         )
         db_session.execute(query)
@@ -314,10 +314,10 @@ class BaseDao(ABC, Generic[_T]):
             include_soft_deleted=include_soft_deleted,
         )
 
-    def exists_by_id(self, model_id: int, db_session: Session = None, *, include_soft_deleted: bool = False) -> bool:
+    def exists_by_id(self, resource_id: int, db_session: Session = None, *, include_soft_deleted: bool = False) -> bool:
         return self.exists_by_field(
             'id',
-            model_id,
+            resource_id,
             db_session=db_session,
             include_soft_deleted=include_soft_deleted,
         )
