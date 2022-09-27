@@ -18,6 +18,9 @@ class BaseDao(ABC, Generic[_T]):
     db_model_class: Type[BaseDBModel] = None
     engine: Engine
 
+    def __init__(self, engine: Engine):
+        self.engine = engine
+
     def _cast_model(self, model: BaseBLModel | BaseDBModel):
         _m = {
             BaseBLModel: lambda model_: self.db_model_class(**model_.dict()),
@@ -298,7 +301,7 @@ class BaseDao(ABC, Generic[_T]):
         query = select(exists(query))
 
         cursor_result = db_session.execute(query)
-        return cursor_result.scalar().first() is not None
+        return cursor_result.scalar()
 
     def exists_by_field(
             self,
