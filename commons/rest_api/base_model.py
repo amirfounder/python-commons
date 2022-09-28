@@ -72,6 +72,7 @@ class BaseDBModel(Base):
         self.clean_obj(obj)
         for k, v in obj.items():
             setattr(self, k, v)
+        return self
 
     def to_dict(self):
         d = {}
