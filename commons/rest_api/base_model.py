@@ -35,7 +35,7 @@ class BaseDBModel(Base):
         now_ = now()
         self.created_at = now_
         self.updated_at = now_
-        self.from_dict(kwargs)
+        self.merge_dict(kwargs)
         super().__init__()
 
     @classmethod
@@ -66,13 +66,16 @@ class BaseDBModel(Base):
             if k not in names:
                 del obj[k]
 
-    @classmethod
-    def from_dict(cls, obj: Dict):
-        self = cls if isinstance(cls, BaseDBModel) else cls()
+    def merge_dict(self, obj: Dict):
         self.clean_obj(obj)
         for k, v in obj.items():
             setattr(self, k, v)
-        return self
+
+    @classmethod
+    def from_dict(cls, obj: Dict):
+        instance = cls()
+        instance.merge_dict(obj)
+        return instance
 
     def to_dict(self):
         d = {}
