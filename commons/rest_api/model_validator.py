@@ -6,39 +6,39 @@ from sqlalchemy.orm import Session
 from commons.logging import log_error, log_warning
 from commons.rest_api.base_model import BaseBLModel
 from commons.rest_api.base_dao import BaseDao
-from commons.rest_api.http_exceptions import BadRequestException, InternalServerErrorException
+from commons.rest_api.http_exceptions import BadRequestException, InternalServerErrorException, STATUS_CODE_TO_EXCEPTION
 
 
 class ValidationError:
-    def __init__(self, message: str, err_status_code: int = 400):
+    def __init__(self, message: str, status_code: int = 400):
         self.message = message
-        self.status_code = err_status_code
+        self.status_code = status_code
 
 
 class ModelNotFoundByFilterError(ValidationError):
-    def __init__(self, params: dict[str, Any], err_status_code: int = 404):
+    def __init__(self, params: dict[str, Any], status_code: int = 404):
         message = "Could not find record where "
         for key, value in params.items():
             message += f"{key} = {value} and "
         message = message[:-5] + "."
 
-        super().__init__(message, err_status_code)
+        super().__init__(message, status_code)
 
 
 class ModelAlreadyExistsError(ValidationError):
-    def __init__(self, params: dict[str, Any], err_status_code: int = 409):
+    def __init__(self, params: dict[str, Any], status_code: int = 409):
         message = "Record already exists where "
         for key, value in params.items():
             message += f"{key} = {value} and "
         message = message[:-5] + "."
 
-        super().__init__(message, err_status_code)
+        super().__init__(message, status_code)
 
 
 class InvalidValueForFieldError(ValidationError):
-    def __init__(self, field_name: str, value: Any, err_status_code: int = 400):
+    def __init__(self, field_name: str, value: Any, status_code: int = 400):
         message = f"Invalid value for field {field_name}: {value}"
-        super().__init__(message, err_status_code)
+        super().__init__(message, status_code)
 
 
 class ModelValidator:
@@ -229,6 +229,7 @@ class ModelValidator:
 
     def validate(self):
         error_messages = []
+        error_status_codes = set()
 
         for validator in self._validators:
             if validator['is_custom']:
@@ -239,8 +240,13 @@ class ModelValidator:
 
             if error:
                 error_messages.append(error.message)
+                error_status_codes.add(error.status_code)
 
         if len(error_messages) > 0:
             message = f'Validation failed: [{", ".join(error_messages)}]'
             log_error(message)
-            raise BadRequestException(message)
+
+            status_code = len(error_status_codes) == 1 and error_status_codes.pop() or 400
+            exc_class = STATUS_CODE_TO_EXCEPTION.get(status_code, BadRequestException)
+
+            raise exc_class(message)

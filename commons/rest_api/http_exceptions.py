@@ -49,3 +49,15 @@ class NotImplementedException(HTTPException):
 class BadGatewayException(HTTPException):
     def __init__(self, message=''):
         super().__init__(status_code=502, detail=generate_detail_obj(502, 'Bad Gateway', message))
+
+
+STATUS_CODE_TO_EXCEPTION = {
+    400: BadRequestException,
+    401: UnauthorizedException,
+    403: ForbiddenException,
+    404: NotFoundException,
+    409: ConflictException,
+    500: InternalServerErrorException,
+    501: NotImplementedException,
+    502: BadGatewayException
+}
