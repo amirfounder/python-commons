@@ -19,7 +19,7 @@ class ModelNotFoundByFilterError(ValidationError):
     def __init__(self, params: dict[str, Any], status_code: int = 404):
         message = "Could not find record where "
         for key, value in params.items():
-            message += f"{key} = {value} and "
+            message += f"{key} = \"{value}\" and "
         message = message[:-5] + "."
 
         super().__init__(message, status_code)
@@ -242,7 +242,7 @@ class ModelValidator:
                 error_messages.append(error.message)
                 error_status_codes.add(error.status_code)
 
-        if len(error_messages) > 0:
+        if error_messages:
             message = f'Validation failed: [{", ".join(error_messages)}]'
             log_error(message)
 
