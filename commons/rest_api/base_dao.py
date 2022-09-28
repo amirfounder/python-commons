@@ -18,8 +18,16 @@ class BaseDao(ABC, Generic[_T]):
     db_model_class: Type[BaseDBModel] = None
     engine: Engine
 
-    def __init__(self, engine: Engine):
-        self.engine = engine
+    def __init__(
+            self,
+            *,
+            bl_model_class: Type[BaseBLModel] = None,
+            db_model_class: Type[BaseDBModel] = None,
+            engine: Engine = None
+    ):
+        self.bl_model_class = bl_model_class or self.bl_model_class
+        self.db_model_class = db_model_class or self.db_model_class
+        self.engine = engine or self.engine
 
     def _cast_model(self, model: BaseBLModel | BaseDBModel):
         _m = {
