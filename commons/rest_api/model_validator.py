@@ -240,7 +240,7 @@ class ModelValidator:
             if error:
                 error_messages.append(error.message)
 
-        message = f'Validation failed: [{", ".join(error_messages)}]'
-        log_error(message)
-        # TODO: Add support for other error types
-        raise BadRequestException(message)
+        if len(error_messages) > 0:
+            message = f'Validation failed: [{", ".join(error_messages)}]'
+            log_error(message)
+            raise BadRequestException(message)
