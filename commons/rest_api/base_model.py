@@ -68,7 +68,7 @@ class BaseDBModel(Base):
 
     @classmethod
     def from_dict(cls, obj: Dict):
-        self = cls if isinstance(cls, BaseDBModel) else cls
+        self = cls if isinstance(cls, BaseDBModel) else cls()
         self.clean_obj(obj)
         for k, v in obj.items():
             setattr(self, k, v)
