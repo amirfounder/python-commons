@@ -40,7 +40,7 @@ def generate_dto(__model_name, resource_bl_model_class, excluded_fields, **kwarg
                 t_ = child_dto_mappings[k]
             else:
                 t_ = v.type_ if v.required else Optional[v.outer_type_]
-            kwargs[k] = (t_, ...)
+            kwargs[k] = (t_, (... if v.required else None))
 
     dto_class = create_model(**kwargs)
     return dto_class
