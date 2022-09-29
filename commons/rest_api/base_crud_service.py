@@ -15,6 +15,12 @@ class BaseCrudService(Generic[_T]):
         self.dao = dao
         self.bl_model_class = bl_model_class
 
+    def _get_offset_limit(self, pagination_options: PaginationOptions) -> (int, int):
+        offset = pagination_options.size * (pagination_options.page - 1)
+        limit = pagination_options.size
+
+        return offset, limit
+
     def get_all(self, filters: dict = None, db_session: Session = None, **kwargs) -> List[_T]:
         return self.dao.get_all(
             filters=filters or {},
