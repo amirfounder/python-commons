@@ -1,16 +1,40 @@
 _registry = {}
 
-def get_registry():
-    global _registry
-    return _registry
+
+def _set_service(class_):
+    _registry[class_] = {
+        'class': class_,
+        'instance': None,
+        'initialized': False
+    }
+
+
+def _get_service(class_):
+    if class_ not in _registry:
+        _set_service(class_)
+
+    context = _registry[class_]
+
+    if not context['initialized']:
+        context['instance'] = context['class']()
+        context['initialized'] = True
+
+    _registry[class_] = context
+
+    return context['instance']
 
 
 def service(class_):
-    global _registry
-    _registry[class_] = class_()
+    _set_service(class_)
     return class_
 
 
 def get_service(class_):
-    global _registry
-    return _registry[class_]
+    return _get_service(class_)
+
+
+def initialize_services():
+    for class_, context in _registry.items():
+        if not context['initialized']:
+            context['instance'] = context['class']()
+            context['initialized'] = True
