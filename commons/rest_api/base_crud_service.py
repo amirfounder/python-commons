@@ -21,11 +21,11 @@ class BaseCrudService(Generic[_T]):
 
         return offset, limit
 
-    def _process_model(self, result: _T) -> _T:
-        return result
+    def _process_model(self, model: _T) -> _T:
+        return model
 
-    def _process_models(self, results: List[_T]) -> List[_T]:
-        return results
+    def _process_models(self, models: List[_T]) -> List[_T]:
+        return models
 
     def get_all(self, filters: dict = None, db_session: Session = None, **kwargs) -> List[_T]:
         models = self.dao.get_all(
