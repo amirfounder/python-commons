@@ -1,45 +1,40 @@
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
-from commons.logging import log_error, log_info, log_success
-
-
-def create_connection_string(
-    db_user: str,
-    password: str,
-    db_host: str,
-    db_port: int,
-    db_name: str,
-    driver: str = 'postgresql',
-) -> str:
-    return f'{driver}://{db_user}:{password}@{db_host}:{db_port}/{db_name}'
+from commons.logging import log_warning
+from commons.rest_api.base_model import Base
 
 
-def drop_sqlalchemy_schema(engine: Engine) -> None:
-    with engine.connect() as conn:
+def drop_schema(engine: Engine = None):
+    with Session(engine) as session:
         try:
-            log_info('Dropping schema...')
-            conn.execute(text('drop schema public cascade;'))
-            conn.commit()
-            log_success('Schema dropped.')
+            session.execute(text('DROP SCHEMA public CASCADE;'))
+            session.commit()
 
         except Exception as e:
-            log_error(f'Error dropping the schema: {e}')
+            log_warning(f'Suppressed exception while dropping schema: {str(e)}')
 
-        finally:
-            conn.close()
-
-
-def create_sqlalchemy_schema(engine: Engine) -> None:
-    with engine.connect() as conn:
+def create_schema(engine: Engine = None):
+    with Session(engine) as session:
         try:
-            log_info('Creating schema...')
-            conn.execute(text('create schema public;'))
-            conn.commit()
-            log_success('Schema created.')
+            session.execute(text('CREATE SCHEMA public;'))
+            session.commit()
 
         except Exception as e:
-            log_error(f'Error creating the schema: {e}')
+            log_warning(f'Suppressed exception while creating schema: {str(e)}')
 
-        finally:
-            conn.close()
+
+def drop_create_schema(engine: Engine) -> None:
+    drop_schema(engine)
+    create_schema(engine)
+
+
+def sync_model_schemas(engine: Engine = None, models: list = None) -> None:
+    if not models:
+        log_warning('No models provided. Syncing tables for all models...')
+
+    Base.metadata.create_all(
+        bind=engine,
+        tables=[model.__table__ for model in models] if models else None,
+    )
