@@ -1,7 +1,10 @@
+from typing import TypeVar, Type
+
 _registry = {}
+S = TypeVar('S')
 
 
-def _set_service(class_):
+def _set_service(class_: S) -> None:
     _registry[class_] = {
         'class': class_,
         'instance': None,
@@ -9,7 +12,7 @@ def _set_service(class_):
     }
 
 
-def _get_service(class_):
+def _get_service(class_: Type[S]) -> S:
     if class_ not in _registry:
         _set_service(class_)
 
@@ -24,12 +27,12 @@ def _get_service(class_):
     return context['instance']
 
 
-def service(class_):
+def service(class_: S) -> S:
     _set_service(class_)
     return class_
 
 
-def get_service(class_):
+def get_service(class_: Type[S]) -> S:
     return _get_service(class_)
 
 
