@@ -6,7 +6,7 @@ from commons.logging import log_warning
 from commons.rest_api.base_model import Base
 
 
-def drop_schema(engine: Engine = None):
+def drop_public_schema(engine: Engine = None):
     with Session(engine) as session:
         try:
             session.execute(text('DROP SCHEMA public CASCADE;'))
@@ -15,7 +15,7 @@ def drop_schema(engine: Engine = None):
         except Exception as e:
             log_warning(f'Suppressed exception while dropping schema: {str(e)}')
 
-def create_schema(engine: Engine = None):
+def create_public_schema(engine: Engine = None):
     with Session(engine) as session:
         try:
             session.execute(text('CREATE SCHEMA public;'))
@@ -25,12 +25,12 @@ def create_schema(engine: Engine = None):
             log_warning(f'Suppressed exception while creating schema: {str(e)}')
 
 
-def drop_create_schema(engine: Engine) -> None:
-    drop_schema(engine)
-    create_schema(engine)
+def drop_create_public_schema(engine: Engine) -> None:
+    drop_public_schema(engine)
+    create_public_schema(engine)
 
 
-def sync_model_schemas(engine: Engine = None, models: list = None) -> None:
+def sync_model_tables(engine: Engine = None, models: list = None) -> None:
     if not models:
         log_warning('No models provided. Syncing tables for all models...')
 
