@@ -76,6 +76,7 @@ class BaseDao(ABC, Generic[_T]):
             self,
             filters: dict = None,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             offset: int = None,
             limit: int = None,
@@ -87,6 +88,7 @@ class BaseDao(ABC, Generic[_T]):
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         if not include_soft_deleted:
             filters['deleted_at'] = None
@@ -99,13 +101,19 @@ class BaseDao(ABC, Generic[_T]):
 
         cursor_result = db_session.execute(query)
         results = cursor_result.scalars().all()
-        return [self._cast_model(res) for res in results]
+        results = [self._cast_model(res) for res in results]
+
+        if close_db_session:
+            db_session.close()
+
+        return results
 
     def get_all_by_field(
             self,
             field: str,
             value: Any,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             filters: dict = None,
             offset: int = None,
@@ -122,6 +130,7 @@ class BaseDao(ABC, Generic[_T]):
         return self.get_all(
             filters=filters,
             db_session=db_session,
+            close_db_session=close_db_session,
             offset=offset,
             limit=limit,
             order_by=order_by,
@@ -133,6 +142,7 @@ class BaseDao(ABC, Generic[_T]):
             field: str,
             value: Any,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             filters: dict = None,
             offset: int = None,
@@ -146,6 +156,7 @@ class BaseDao(ABC, Generic[_T]):
             value,
             filters=filters,
             db_session=db_session,
+            close_db_session=close_db_session,
             offset=offset,
             limit=limit,
             order_by=order_by,
@@ -158,6 +169,7 @@ class BaseDao(ABC, Generic[_T]):
             self,
             resource_id: int,
             db_session: Session = None,
+            close_db_session: bool = False,
             filters: dict = None,
             *,
             include_soft_deleted: bool = False,
@@ -167,14 +179,23 @@ class BaseDao(ABC, Generic[_T]):
             'id',
             resource_id,
             db_session=db_session,
+            close_db_session=close_db_session,
             filters=filters,
             include_soft_deleted=include_soft_deleted,
         )
 
-    def create(self, model: _T, db_session: Session = None, *, commit: bool = True) -> _T:
+    def create(
+            self,
+            model: _T,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> _T:
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         db_model = self._cast_model(model)
         db_session.add(db_model)
@@ -182,12 +203,25 @@ class BaseDao(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-        return self._cast_model(db_model)
+        result = self._cast_model(db_model)
 
-    def create_many(self, models: Iterable[_T], db_session: Session = None, *, commit: bool = True) -> List[_T]:
+        if close_db_session:
+            db_session.close()
+
+        return result
+
+    def create_many(
+            self,
+            models: Iterable[_T],
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> List[_T]:
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         db_models = [self._cast_model(model) for model in models]
         db_session.add_all(db_models)
@@ -195,12 +229,25 @@ class BaseDao(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-        return [self._cast_model(db_model) for db_model in db_models]
+        results = [self._cast_model(db_model) for db_model in db_models]
 
-    def update(self, model: _T, db_session: Session = None, *, commit: bool = True) -> _T:
+        if close_db_session:
+            db_session.close()
+
+        return results
+
+    def update(
+            self,
+            model: _T,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> _T:
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         db_model = self._cast_model(model)
         db_session.merge(db_model)
@@ -208,18 +255,47 @@ class BaseDao(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-        return self._cast_model(db_model)
+        result = self._cast_model(db_model)
 
-    def delete(self, model: _T, db_session: Session = None, *, commit: bool = True, hard_delete: bool = False) -> None:
+        if close_db_session:
+            db_session.close()
+
+        return result
+
+    def delete(
+            self,
+            model: _T,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True,
+            hard_delete: bool = False
+    ) -> None:
+
+        kwargs = {
+            'model': model,
+            'db_session': db_session,
+            'close_db_session': close_db_session,
+            'commit': commit,
+        }
+
         if hard_delete:
-            self.hard_delete(model, db_session=db_session, commit=commit)
-        else:
-            self.soft_delete(model, db_session=db_session, commit=commit)
+            return self.hard_delete(**kwargs)
 
-    def hard_delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
+        return self.soft_delete(**kwargs)
+
+    def hard_delete(
+            self,
+            model: _T,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> None:
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         db_model = self._cast_model(model)
         db_session.delete(db_model)
@@ -227,46 +303,98 @@ class BaseDao(ABC, Generic[_T]):
         if commit:
             db_session.commit()
 
-    def soft_delete(self, model: _T, db_session: Session = None, *, commit: bool = True) -> None:
+        if close_db_session:
+            db_session.close()
+
+    def soft_delete(
+            self,
+            model: _T,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> None:
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         model.deleted_at = datetime.utcnow()
-        self.update(model, db_session=db_session, commit=commit)
+        self.update(model, db_session=db_session, close_db_session=close_db_session, commit=commit)
 
     def delete_by_id(
             self,
             resource_id: int,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             commit: bool = True,
             hard_delete: bool = False
     ) -> None:
 
-        if hard_delete:
-            self.hard_delete_by_id(resource_id, db_session=db_session, commit=commit)
-        else:
-            self.soft_delete_by_id(resource_id, db_session=db_session, commit=commit)
+        kwargs = {
+            'resource_id': resource_id,
+            'db_session': db_session,
+            'close_db_session': close_db_session,
+            'commit': commit,
+        }
 
-    def hard_delete_by_id(self, resource_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+        if hard_delete:
+            return self.hard_delete_by_id(**kwargs)
+
+        return self.soft_delete_by_id(**kwargs)
+
+    def hard_delete_by_id(
+            self,
+            resource_id: int,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> None:
         query = (
             delete(self.db_model_class)
             .where(self.db_model_class.id == resource_id)
         )
+
+        if db_session is None:
+            db_session = self._create_session()
+            close_db_session = True
+
         db_session.execute(query)
+
         if commit:
             db_session.commit()
 
-    def soft_delete_by_id(self, resource_id: int, db_session: Session = None, *, commit: bool = True) -> None:
+        if close_db_session:
+            db_session.close()
+
+    def soft_delete_by_id(
+            self,
+            resource_id: int,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            commit: bool = True
+    ) -> None:
+
         query = (
             update(self.db_model_class)
             .where(self.db_model_class.id == resource_id)
             .values(deleted_at=datetime.utcnow())
         )
+
+        if db_session is None:
+            db_session = self._create_session()
+            close_db_session = True
+
         db_session.execute(query)
+
         if commit:
             db_session.commit()
+
+        if close_db_session:
+            db_session.close()
 
     def count_by_filter(
             self,
@@ -293,6 +421,7 @@ class BaseDao(ABC, Generic[_T]):
             self,
             filters: dict = None,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             include_soft_deleted: bool = False
     ) -> bool:
@@ -300,6 +429,7 @@ class BaseDao(ABC, Generic[_T]):
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         if not include_soft_deleted:
             filters['deleted_at'] = None
@@ -309,26 +439,41 @@ class BaseDao(ABC, Generic[_T]):
         query = select(exists(query))
 
         cursor_result = db_session.execute(query)
-        return cursor_result.scalar()
+        result = cursor_result.scalar()
+
+        if close_db_session:
+            db_session.close()
+
+        return result
 
     def exists_by_field(
             self,
             field: str,
             value: Any,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             include_soft_deleted: bool = False
     ) -> bool:
         return self.exists_by_filter(
             {field: value},
             db_session=db_session,
+            close_db_session=close_db_session,
             include_soft_deleted=include_soft_deleted,
         )
 
-    def exists_by_id(self, resource_id: int, db_session: Session = None, *, include_soft_deleted: bool = False) -> bool:
+    def exists_by_id(
+            self,
+            resource_id: int,
+            db_session: Session = None,
+            close_db_session: bool = False,
+            *,
+            include_soft_deleted: bool = False
+    ) -> bool:
         return self.exists_by_field(
             'id',
             resource_id,
             db_session=db_session,
+            close_db_session=close_db_session,
             include_soft_deleted=include_soft_deleted,
         )
