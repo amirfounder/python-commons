@@ -10,6 +10,12 @@ def get_referer():
     return Depends(dependency)
 
 
+def get_host():
+    def dependency(host: str = Header(default=None)):
+        return host
+    return Depends(dependency)
+
+
 def get_bearer_token():
     def dependency(token: HTTPAuthorizationCredentials = Depends(http_bearer)):
         if token:
