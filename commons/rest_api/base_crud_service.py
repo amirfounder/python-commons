@@ -14,7 +14,7 @@ class BaseCrudService(Generic[_T]):
     def __init__(self, dao: BaseDao, bl_model_class: Type[_T], model_validator_class: Type[ModelValidator] = None):
         self.dao = dao
         self.bl_model_class = bl_model_class
-        self.model_validator_class = model_validator_class or self.get_validator
+        self.model_validator_class = model_validator_class or ModelValidator
 
     def _get_offset_limit(self, pagination_options: PaginationOptions) -> (int, int):
         offset = pagination_options.size * (pagination_options.page - 1)
