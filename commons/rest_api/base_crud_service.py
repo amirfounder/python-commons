@@ -11,15 +11,19 @@ _T = TypeVar('_T', bound=BaseBLModel)
 
 
 class BaseCrudService(Generic[_T]):
-    def __init__(self, dao: BaseDao, bl_model_class: Type[_T]):
+    def __init__(self, dao: BaseDao, bl_model_class: Type[_T], model_validator_class: Type[ModelValidator] = None):
         self.dao = dao
         self.bl_model_class = bl_model_class
+        self.model_validator_class = model_validator_class or ModelValidator
 
     def _get_offset_limit(self, pagination_options: PaginationOptions) -> (int, int):
         offset = pagination_options.size * (pagination_options.page - 1)
         limit = pagination_options.size
 
         return offset, limit
+
+    def get_validator(self, *args, **kwargs):
+        return self.model_validator_class(*args, **kwargs)
 
     def _postprocess_model(self, model: _T) -> _T:
         return model
@@ -33,24 +37,34 @@ class BaseCrudService(Generic[_T]):
     def _preprocess_models(self, models: List[_T]) -> List[_T]:
         return models
 
-    def get_all(self, filters: dict = None, db_session: Session = None, **kwargs) -> List[_T]:
+    def get_all(self, filters: dict = None, db_session: Session = None, exclude_fields = None, **kwargs) -> List[_T]:
         models = self.dao.get_all(
             filters=filters or {},
             db_session=db_session,
+            exclude_columns=exclude_fields,
             **kwargs
         )
         return self._postprocess_models(models)
-    
+
     def get_all_paginated(
             self,
             filters: dict = None,
             pagination_options: PaginationOptions = None,
             db_session: Session = None,
+            exclude_fields: List[str] = None,
             **kwargs
     ) -> PaginatedResults[_T]:
         
         offset, limit = self._get_offset_limit(pagination_options or PaginationOptions())
-        models = self.get_all(filters=filters, offset=offset, limit=limit, db_session=db_session, **kwargs)
+        models = self.get_all(
+            filters=filters,
+            offset=offset,
+            limit=limit,
+            db_session=db_session,
+            exclude_fields=exclude_fields,
+            **kwargs
+        )
+
         count = self.dao.count_by_filter(filters=filters)
 
         return PaginatedResults(
@@ -59,12 +73,18 @@ class BaseCrudService(Generic[_T]):
             count=count
         )
     
-    def get_all_by_field(self, field: str, value: Any, db_session: Session = None) -> List[_T]:
+    def get_all_by_field(
+            self,
+            field: str,
+            value: Any,
+            db_session: Session = None,
+            exclude_fields: List[str] = None
+    ) -> List[_T]:
         ModelValidator(self.bl_model_class)\
             .assert_field_exists_on_model(field)\
             .validate()
 
-        results = self.dao.get_all_by_field(field, value, db_session=db_session)
+        results = self.dao.get_all_by_field(field, value, db_session=db_session, exclude_columns=exclude_fields)
         return self._postprocess_models(results)
 
     def get_all_by_field_paginated(
@@ -72,7 +92,8 @@ class BaseCrudService(Generic[_T]):
             field: str,
             value: Any,
             pagination_options: PaginationOptions = None,
-            db_session: Session = None
+            db_session: Session = None,
+            exclude_fields: List[str] = None
     ) -> PaginatedResults[_T]:
         ModelValidator(self.bl_model_class)\
             .assert_field_exists_on_model(field)\
@@ -81,11 +102,13 @@ class BaseCrudService(Generic[_T]):
         return self.get_all_paginated(
             filters={field: value},
             pagination_options=pagination_options,
-            db_session=db_session
+            db_session=db_session,
+            exclude_fields=exclude_fields
         )
     
-    def get_one_by_field(self, field: str, value: Any, db_session: Session = None) -> Optional[_T]:
-        result = self.dao.get_one_by_field(field, value, db_session=db_session)
+    def get_one_by_field(self, field: str, value: Any, db_session: Session = None, exclude_fields: List[str] = None)\
+            -> Optional[_T]:
+        result = self.dao.get_one_by_field(field, value, db_session=db_session, exclude_columns=exclude_fields)
 
         if result is None:
             ModelValidator()\
@@ -94,8 +117,15 @@ class BaseCrudService(Generic[_T]):
 
         return self._postprocess_model(result)
 
-    def get_by_id(self, resource_id: int, db_session: Session = None, **kwargs) -> Optional[_T]:
-        model = self.dao.get_by_id(resource_id, db_session=db_session, **kwargs)
+    def get_by_id(self, resource_id: int, db_session: Session = None, exclude_fields: List[str] = None, **kwargs) \
+            -> Optional[_T]:
+
+        model = self.dao.get_by_id(
+            resource_id,
+            db_session=db_session,
+            exclude_columns=exclude_fields,
+            **kwargs
+        )
 
         if model is None:
             ModelValidator()\
