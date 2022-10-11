@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from abc import ABC
 from datetime import datetime
-from typing import Type, Generic, TypeVar, Optional, Iterable, List, Any
+from typing import Type, Generic, TypeVar, Optional, Iterable, List, Any, Dict
 
 from sqlalchemy import update, select, exists, func, delete
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, Row
 from sqlalchemy.orm import Session
 
 from commons.rest_api.base_model import BaseBLModel, BaseDBModel
@@ -29,16 +29,20 @@ class BaseDao(ABC, Generic[_T]):
         self.db_model_class = db_model_class or self.db_model_class
         self.engine = engine or self.engine
 
-    def _cast_model(self, model: BaseBLModel | BaseDBModel):
-        _m = {
-            BaseBLModel: lambda model_: self.db_model_class(**model_.dict()),
-            BaseDBModel: lambda model_: self.bl_model_class.from_orm(model_),
-        }
-        for k, v in _m.items():
-            if isinstance(model, k):
-                return v(model)
-        
-        raise Exception("Could not cast model")
+    def _cast_to_bl_model(self, model: BaseDBModel | Dict | Row, bl_model_class: Type[BaseBLModel] = None) -> _T:
+        bl_model_class = bl_model_class or self.bl_model_class
+
+        if isinstance(model, self.db_model_class):
+            return bl_model_class.from_orm(model)
+
+        if isinstance(model, Row):
+            model = dict(model)
+
+        return bl_model_class(**model)
+
+    def _cast_to_db_model(self, model: BaseBLModel, db_model_class: Type[BaseDBModel] = None) -> BaseDBModel:
+        db_model_class = db_model_class or self.db_model_class
+        return db_model_class(**model.dict())
 
     def _create_session(self):
         return Session(self.engine)
@@ -82,8 +86,12 @@ class BaseDao(ABC, Generic[_T]):
             limit: int = None,
             order_by: dict = None,
             include_soft_deleted: bool = False,
+            exclude_columns: List[str] = None,
+            bl_model_class: Type[BaseBLModel] = None,
     ) -> List[_T]:
 
+        bl_model_class = bl_model_class or self.bl_model_class
+        filters = filters or {}
         order_by = order_by or {'id': 'asc'}
 
         if db_session is None:
@@ -93,15 +101,15 @@ class BaseDao(ABC, Generic[_T]):
         if not include_soft_deleted:
             filters['deleted_at'] = None
 
-        query = select(self.db_model_class)
+        columns = self.db_model_class.get_instrumented_attributes(exclude_columns)
+        query = select(*columns)
         query = self._apply_filters(query, filters or {})
         query = self._apply_offset(query, offset)
         query = self._apply_limit(query, limit)
         query = self._apply_ordering(query, order_by)
 
         cursor_result = db_session.execute(query)
-        results = cursor_result.scalars().all()
-        results = [self._cast_model(res) for res in results]
+        results = [self._cast_to_bl_model(row, bl_model_class) for row in cursor_result]
 
         if close_db_session:
             db_session.close()
@@ -120,6 +128,8 @@ class BaseDao(ABC, Generic[_T]):
             limit: int = None,
             order_by: dict = {},
             include_soft_deleted: bool = False,
+            exclude_columns: List[str] = None,
+            bl_model_class: Type[BaseBLModel] = None,
     ) -> List[_T]:
 
         self._assert_model_has_column(field)
@@ -135,6 +145,8 @@ class BaseDao(ABC, Generic[_T]):
             limit=limit,
             order_by=order_by,
             include_soft_deleted=include_soft_deleted,
+            exclude_columns=exclude_columns,
+            bl_model_class=bl_model_class,
         )
 
     def get_one_by_field(
@@ -149,6 +161,8 @@ class BaseDao(ABC, Generic[_T]):
             limit: int = None,
             order_by: dict = {},
             include_soft_deleted: bool = False,
+            exclude_columns: List[str] = None,
+            bl_model_class: Type[BaseBLModel] = None,
     ) -> Optional[_T]:
 
         results = self.get_all_by_field(
@@ -161,6 +175,8 @@ class BaseDao(ABC, Generic[_T]):
             limit=limit,
             order_by=order_by,
             include_soft_deleted=include_soft_deleted,
+            exclude_columns=exclude_columns,
+            bl_model_class=bl_model_class,
         )
 
         return next(iter(results), None)
@@ -173,6 +189,8 @@ class BaseDao(ABC, Generic[_T]):
             filters: dict = None,
             *,
             include_soft_deleted: bool = False,
+            exclude_columns: List[str] = None,
+            bl_model_class: Type[BaseBLModel] = None,
     ) -> Optional[_T]:
 
         return self.get_one_by_field(
@@ -182,6 +200,8 @@ class BaseDao(ABC, Generic[_T]):
             close_db_session=close_db_session,
             filters=filters,
             include_soft_deleted=include_soft_deleted,
+            exclude_columns=exclude_columns,
+            bl_model_class=bl_model_class,
         )
 
     def create(
@@ -197,13 +217,13 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_model(model)
+        db_model = self._cast_to_bl_model(model)
         db_session.add(db_model)
 
         if commit:
             db_session.commit()
 
-        result = self._cast_model(db_model)
+        result = self._cast_to_bl_model(db_model)
 
         if close_db_session:
             db_session.close()
@@ -223,13 +243,13 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_models = [self._cast_model(model) for model in models]
+        db_models = [self._cast_to_bl_model(model) for model in models]
         db_session.add_all(db_models)
 
         if commit:
             db_session.commit()
 
-        results = [self._cast_model(db_model) for db_model in db_models]
+        results = [self._cast_to_bl_model(db_model) for db_model in db_models]
 
         if close_db_session:
             db_session.close()
@@ -249,13 +269,13 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_model(model)
+        db_model = self._cast_to_bl_model(model)
         db_session.merge(db_model)
 
         if commit:
             db_session.commit()
 
-        result = self._cast_model(db_model)
+        result = self._cast_to_bl_model(db_model)
 
         if close_db_session:
             db_session.close()
@@ -297,7 +317,7 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_model(model)
+        db_model = self._cast_to_bl_model(model)
         db_session.delete(db_model)
 
         if commit:

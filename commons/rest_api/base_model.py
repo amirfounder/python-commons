@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 from pydantic import Extra, BaseModel
 from sqlalchemy import Column, Integer, DateTime
-from sqlalchemy.orm import registry as _registry
+from sqlalchemy.orm import registry as _registry, InstrumentedAttribute
 
 from commons.datetime import now
 
@@ -43,6 +43,10 @@ class BaseDBModel(Base):
         return column_name in cls.get_column_names()
 
     @classmethod
+    def get_column(cls, column_name: str):
+        return cls.__table__.columns.get(column_name)
+
+    @classmethod
     def get_columns(cls) -> List[Column]:
         return [c for c in cls.get_table().columns]
 
@@ -57,6 +61,46 @@ class BaseDBModel(Base):
     @classmethod
     def get_table(cls):
         return Base.metadata.tables.get(cls.__tablename__)
+
+    @classmethod
+    def get_instrumented_attributes(
+            cls,
+            exclude_attributes: List[str | InstrumentedAttribute] = None
+    ) -> List[InstrumentedAttribute]:
+
+        _exclude_attributes = []
+
+        res = []
+        for attribute in exclude_attributes or []:
+            if isinstance(attribute, InstrumentedAttribute):
+                _exclude_attributes.append(attribute)
+
+            if isinstance(attribute, str):
+                attribute = cls.get_instrumented_attribute_by_name(attribute, hard_fail=False)
+                if attribute:
+                    _exclude_attributes.append(attribute)
+
+        _exclude_attributes = set(_exclude_attributes)
+
+        for attribute_name in dir(cls):
+            attribute = getattr(cls, attribute_name)
+            if isinstance(attribute, InstrumentedAttribute) and attribute not in _exclude_attributes:
+                res.append(attribute)
+
+        return res
+
+    @classmethod
+    def get_instrumented_attribute_by_name(cls, attribute_name: str, hard_fail: bool = True):
+        res = getattr(cls, attribute_name)
+        if isinstance(res, InstrumentedAttribute):
+            return res
+        if hard_fail:
+            raise AttributeError(f'Attribute {attribute_name} is not an InstrumentedAttribute')
+
+    @classmethod
+    def has_instrumented_attribute_by_name(cls, attribute_name: str):
+        attr = getattr(cls, attribute_name, None)
+        return isinstance(attr, InstrumentedAttribute)
 
     @classmethod
     def clean_obj(cls, obj: Dict) -> None:
