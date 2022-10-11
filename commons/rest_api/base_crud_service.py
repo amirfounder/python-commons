@@ -21,10 +21,16 @@ class BaseCrudService(Generic[_T]):
 
         return offset, limit
 
-    def _process_model(self, model: _T) -> _T:
+    def _postprocess_model(self, model: _T) -> _T:
         return model
 
-    def _process_models(self, models: List[_T]) -> List[_T]:
+    def _postprocess_models(self, models: List[_T]) -> List[_T]:
+        return models
+
+    def _preprocess_model(self, model: _T) -> _T:
+        return model
+
+    def _preprocess_models(self, models: List[_T]) -> List[_T]:
         return models
 
     def get_all(self, filters: dict = None, db_session: Session = None, **kwargs) -> List[_T]:
@@ -33,7 +39,7 @@ class BaseCrudService(Generic[_T]):
             db_session=db_session,
             **kwargs
         )
-        return self._process_models(models)
+        return self._postprocess_models(models)
     
     def get_all_paginated(
             self,
@@ -59,7 +65,7 @@ class BaseCrudService(Generic[_T]):
             .validate()
 
         results = self.dao.get_all_by_field(field, value, db_session=db_session)
-        return self._process_models(results)
+        return self._postprocess_models(results)
 
     def get_all_by_field_paginated(
             self,
@@ -86,7 +92,7 @@ class BaseCrudService(Generic[_T]):
                 .add_model_not_found_by_field_error(field, value)\
                 .validate()
 
-        return self._process_model(result)
+        return self._postprocess_model(result)
 
     def get_by_id(self, resource_id: int, db_session: Session = None, **kwargs) -> Optional[_T]:
         model = self.dao.get_by_id(resource_id, db_session=db_session, **kwargs)
@@ -96,20 +102,24 @@ class BaseCrudService(Generic[_T]):
                 .add_model_not_found_by_id_error(resource_id)\
                 .validate()
 
-        return self._process_model(model)
+        return self._postprocess_model(model)
 
     def exists(self, resource_id: int, db_session: Session = None, **kwargs) -> bool:
         return self.dao.exists_by_id(resource_id, db_session=db_session, **kwargs)
 
     def create(self, model: _T, db_session: Session = None, **kwargs) -> _T:
+        model = self._preprocess_model(model)
         model = self.dao.create(model, db_session=db_session, **kwargs)
-        return self._process_model(model)
+        return self._postprocess_model(model)
 
     def create_many(self, models: List[_T], db_session: Session = None, **kwargs) -> List[_T]:
-        model = self.dao.create_many(models, db_session=db_session, **kwargs)
-        return self._process_models(model)
+        models = self._preprocess_models(models)
+        models = self.dao.create_many(models, db_session=db_session, **kwargs)
+        return self._postprocess_models(models)
 
     def update_by_id(self, resource_id: int, model: _T) -> _T:
+        self._preprocess_model(model)
+
         ModelValidator(model)\
             .assert_resource_id_matches_path_variable_id(resource_id)\
             .validate()
@@ -117,12 +127,14 @@ class BaseCrudService(Generic[_T]):
         return self.update(model)
 
     def update(self, model: _T) -> _T:
+        model = self._preprocess_model(model)
+
         ModelValidator(model)\
             .assert_model_exists_in_db_by_id()\
             .validate()
 
         model = self.dao.update(model)
-        return self._process_model(model)
+        return self._postprocess_model(model)
 
     def partial_update(self, resource_id: int, partial_model: dict) -> _T:
         model = self.get_by_id(resource_id)
