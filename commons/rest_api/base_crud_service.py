@@ -14,7 +14,7 @@ class BaseCrudService(Generic[_T]):
     def __init__(self, dao: BaseDao, bl_model_class: Type[_T], model_validator_class: Type[ModelValidator] = None):
         self.dao = dao
         self.bl_model_class = bl_model_class
-        self.model_validator_class = model_validator_class or ModelValidator
+        self.model_validator_class = model_validator_class or self.get_validator
 
     def _get_offset_limit(self, pagination_options: PaginationOptions) -> (int, int):
         offset = pagination_options.size * (pagination_options.page - 1)
@@ -38,6 +38,7 @@ class BaseCrudService(Generic[_T]):
         return models
 
     def get_all(self, filters: dict = None, db_session: Session = None, exclude_fields = None, **kwargs) -> List[_T]:
+
         models = self.dao.get_all(
             filters=filters or {},
             db_session=db_session,
@@ -80,7 +81,8 @@ class BaseCrudService(Generic[_T]):
             db_session: Session = None,
             exclude_fields: List[str] = None
     ) -> List[_T]:
-        ModelValidator(self.bl_model_class)\
+
+        self.get_validator(self.bl_model_class)\
             .assert_field_exists_on_model(field)\
             .validate()
 
@@ -95,7 +97,8 @@ class BaseCrudService(Generic[_T]):
             db_session: Session = None,
             exclude_fields: List[str] = None
     ) -> PaginatedResults[_T]:
-        ModelValidator(self.bl_model_class)\
+
+        self.get_validator(self.bl_model_class)\
             .assert_field_exists_on_model(field)\
             .validate()
 
@@ -108,10 +111,11 @@ class BaseCrudService(Generic[_T]):
     
     def get_one_by_field(self, field: str, value: Any, db_session: Session = None, exclude_fields: List[str] = None)\
             -> Optional[_T]:
+
         result = self.dao.get_one_by_field(field, value, db_session=db_session, exclude_columns=exclude_fields)
 
         if result is None:
-            ModelValidator()\
+            self.get_validator()\
                 .add_model_not_found_by_field_error(field, value)\
                 .validate()
 
@@ -128,7 +132,7 @@ class BaseCrudService(Generic[_T]):
         )
 
         if model is None:
-            ModelValidator()\
+            self.get_validator()\
                 .add_model_not_found_by_id_error(resource_id)\
                 .validate()
 
@@ -150,7 +154,7 @@ class BaseCrudService(Generic[_T]):
     def update_by_id(self, resource_id: int, model: _T) -> _T:
         self._preprocess_model(model)
 
-        ModelValidator(model)\
+        self.get_validator(model)\
             .assert_resource_id_matches_path_variable_id(resource_id)\
             .validate()
 
@@ -159,7 +163,7 @@ class BaseCrudService(Generic[_T]):
     def update(self, model: _T) -> _T:
         model = self._preprocess_model(model)
 
-        ModelValidator(model)\
+        self.get_validator(model)\
             .assert_model_exists_in_db_by_id()\
             .validate()
 
@@ -170,7 +174,7 @@ class BaseCrudService(Generic[_T]):
         model = self.get_by_id(resource_id)
 
         if not model:
-            ModelValidator()\
+            self.get_validator()\
                 .add_model_not_found_by_id_error(resource_id)\
                 .validate()
 
@@ -181,7 +185,7 @@ class BaseCrudService(Generic[_T]):
         return self.update(model)
 
     def delete_by_id(self, resource_id: int, db_session: Session, *, hard_delete: bool = False) -> None:
-        ModelValidator()\
+        self.get_validator()\
             .assert_model_exists_in_db_by_id(resource_id)\
             .validate()
 
