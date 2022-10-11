@@ -32,11 +32,11 @@ class BaseDao(ABC, Generic[_T]):
     def _cast_to_bl_model(self, model: BaseDBModel | Dict | Row, bl_model_class: Type[BaseBLModel] = None) -> _T:
         bl_model_class = bl_model_class or self.bl_model_class
 
+        if isinstance(model, Row):
+            model = self.db_model_class(**model)
+
         if isinstance(model, self.db_model_class):
             return bl_model_class.from_orm(model)
-
-        if isinstance(model, Row):
-            model = dict(model)
 
         return bl_model_class(**model)
 
