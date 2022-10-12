@@ -75,7 +75,7 @@ class BaseCrudService(Generic[_T]):
         return self._cast_to_paginated_results(
             models=models,
             pagination_options=pagination_options,
-            total=self.dao.count_by_filter(
+            total=self.count_by_filter(
                 filters=filters,
                 db_session=db_session
             )
@@ -172,6 +172,13 @@ class BaseCrudService(Generic[_T]):
             .validate()
 
         return self.dao.update(model)
+
+    def count_by_filter(self, filters: dict = None, db_session: Session = None, **kwargs) -> int:
+        return self.dao.count_by_filter(
+            filters=filters or {},
+            db_session=db_session,
+            **kwargs
+        )
 
     def partial_update(self, resource_id: int, partial_model: dict) -> _T:
         model = self.get_by_id(resource_id)
