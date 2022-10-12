@@ -48,9 +48,6 @@ class BaseDao(ABC, Generic[_T]):
         return Session(self.engine)
 
     def _create_select_query(self, *, exclude_columns: List[str | InstrumentedAttribute] = None) -> select:
-        if not exclude_columns:
-            return select(self.db_model_class)
-
         exclude_columns = set(exclude_columns or [])
         attributes = self.db_model_class.get_instrumented_attributes(
             filters=[
