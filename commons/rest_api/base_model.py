@@ -70,9 +70,13 @@ class BaseDBModel(Base):
         for attribute_name in dir(cls):
             attribute = getattr(cls, attribute_name)
             if isinstance(attribute, InstrumentedAttribute):
+                attribute_failed_filter = False
                 for filter_ in filters:
                     if not filter_(attribute):
-                        continue
+                        attribute_failed_filter = True
+                        break
+                if attribute_failed_filter:
+                    continue
                 attributes.append(attribute)
 
         return attributes
