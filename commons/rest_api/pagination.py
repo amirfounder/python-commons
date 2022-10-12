@@ -31,7 +31,7 @@ class PaginationOptions(BaseModel):
 class PaginatedResults(GenericModel, Generic[_T]):
     results: Optional[list[_T]]
     params: Optional[dict]
-    count: int = 0
+    total: int = 0
 
     def map_results_to_dtos(self, dto_class: Type[BaseDTO]):
         self.results = map_models(dto_class, self.results)

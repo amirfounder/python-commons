@@ -215,7 +215,7 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_to_bl_model(model)
+        db_model = self._cast_to_db_model(model)
         db_session.add(db_model)
 
         if commit:
@@ -241,7 +241,7 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_models = [self._cast_to_bl_model(model) for model in models]
+        db_models = [self._cast_to_db_model(model) for model in models]
         db_session.add_all(db_models)
 
         if commit:
@@ -267,7 +267,7 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_to_bl_model(model)
+        db_model = self._cast_to_db_model(model)
         db_session.merge(db_model)
 
         if commit:
@@ -315,7 +315,7 @@ class BaseDao(ABC, Generic[_T]):
             db_session = self._create_session()
             close_db_session = True
 
-        db_model = self._cast_to_bl_model(model)
+        db_model = self._cast_to_db_model(model)
         db_session.delete(db_model)
 
         if commit:
@@ -418,6 +418,7 @@ class BaseDao(ABC, Generic[_T]):
             self,
             filters: dict = None,
             db_session: Session = None,
+            close_db_session: bool = False,
             *,
             include_soft_deleted: bool = False,
     ) -> int:
@@ -425,6 +426,7 @@ class BaseDao(ABC, Generic[_T]):
 
         if db_session is None:
             db_session = self._create_session()
+            close_db_session = True
 
         if not include_soft_deleted:
             filters['deleted_at'] = None
@@ -433,7 +435,12 @@ class BaseDao(ABC, Generic[_T]):
         query = self._apply_filters(query, filters)
 
         cursor_result = db_session.execute(query)
-        return cursor_result.scalar()
+        result = cursor_result.scalar()
+
+        if close_db_session:
+            db_session.close()
+
+        return result
 
     def exists_by_filter(
             self,

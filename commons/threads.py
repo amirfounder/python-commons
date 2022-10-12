@@ -58,4 +58,3 @@ def join_threads(threads: Iterable[_Thread | ThreadWrapper]):
         if isinstance(thread, ThreadWrapper):
             thread = thread.thread
         thread.join()
-
