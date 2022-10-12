@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 from pydantic import Extra, BaseModel
 from sqlalchemy import Column, Integer, DateTime
@@ -63,31 +63,19 @@ class BaseDBModel(Base):
         return Base.metadata.tables.get(cls.__tablename__)
 
     @classmethod
-    def get_instrumented_attributes(
-            cls,
-            exclude_attributes: List[str | InstrumentedAttribute] = None
-    ) -> List[InstrumentedAttribute]:
-
-        _exclude_attributes = []
-
-        res = []
-        for attribute in exclude_attributes or []:
-            if isinstance(attribute, InstrumentedAttribute):
-                _exclude_attributes.append(attribute)
-
-            if isinstance(attribute, str):
-                attribute = cls.get_instrumented_attribute_by_name(attribute, hard_fail=False)
-                if attribute:
-                    _exclude_attributes.append(attribute)
-
-        _exclude_attributes = set(_exclude_attributes)
+    def get_instrumented_attributes(cls, filters: List[Callable[[InstrumentedAttribute], bool]] = None) -> \
+            List[InstrumentedAttribute]:
+        attributes = []
 
         for attribute_name in dir(cls):
             attribute = getattr(cls, attribute_name)
-            if isinstance(attribute, InstrumentedAttribute) and attribute not in _exclude_attributes:
-                res.append(attribute)
+            if isinstance(attribute, InstrumentedAttribute):
+                for filter_ in filters:
+                    if not filter_(attribute):
+                        continue
+                attributes.append(attribute)
 
-        return res
+        return attributes
 
     @classmethod
     def get_instrumented_attribute_by_name(cls, attribute_name: str, hard_fail: bool = True):

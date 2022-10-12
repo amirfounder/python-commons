@@ -6,7 +6,7 @@ from typing import Type, Generic, TypeVar, Optional, Iterable, List, Any, Dict
 
 from sqlalchemy import update, select, exists, func, delete
 from sqlalchemy.engine import Engine, Row
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, InstrumentedAttribute
 
 from commons.rest_api.base_model import BaseBLModel, BaseDBModel
 
@@ -46,6 +46,18 @@ class BaseDao(ABC, Generic[_T]):
 
     def _create_session(self):
         return Session(self.engine)
+
+    def _create_select_query(self, *, exclude_columns: List[str | InstrumentedAttribute] = None) -> select:
+        exclude_columns = exclude_columns or []
+        exclude_columns = set(exclude_columns)
+
+        attributes = self.db_model_class.get_instrumented_attributes(
+            filters=[
+                lambda attr: attr.is_selectable,
+                lambda attr: attr not in exclude_columns and attr.key not in exclude_columns,
+            ]
+        )
+        return select(*attributes)
 
     def _apply_filters(self, query, filters: dict):
         for key, value, in filters.items():
@@ -101,8 +113,7 @@ class BaseDao(ABC, Generic[_T]):
         if not include_soft_deleted:
             filters['deleted_at'] = None
 
-        columns = self.db_model_class.get_instrumented_attributes(exclude_columns)
-        query = select(*columns)
+        query = self._create_select_query(exclude_columns=exclude_columns)
         query = self._apply_filters(query, filters or {})
         query = self._apply_offset(query, offset)
         query = self._apply_limit(query, limit)
