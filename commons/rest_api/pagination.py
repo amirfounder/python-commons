@@ -5,7 +5,6 @@ from pydantic.generics import GenericModel
 
 from commons.logging import log_info
 from commons.rest_api.model_mappers import map_models
-from commons.rest_api.dtos import BaseDTO
 from commons.rest_api.base_model import BaseBLModel
 
 _T = TypeVar('_T', bound=BaseBLModel)
@@ -33,7 +32,7 @@ class PaginatedResults(GenericModel, Generic[_T]):
     params: Optional[dict]
     total: int = 0
 
-    def map_results_to_dtos(self, dto_class: Type[BaseDTO]):
+    def map_results_to_dtos(self, dto_class: Type[_T]):
         self.results = map_models(dto_class, self.results)
         return self
 
