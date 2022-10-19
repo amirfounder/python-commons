@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from commons.multi_index_cache import MultiKeyIndex
+from commons.multi_key_index import MultiKeyIndex
 
 class TestMultiIndexCache(TestCase):
     def _setup_cache(self):
