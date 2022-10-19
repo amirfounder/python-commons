@@ -2,6 +2,18 @@ import uuid
 from typing import Any, Type
 
 
+def is_valid_dict_key(o: any):
+    temp = {}
+    try:
+        temp[o] = None
+        return True
+    except TypeError:
+        return False
+
+
+def is_type_a_valid_dict_key(o: type):
+    return o in (str, int, float, bool, type(None), uuid.UUID)
+
 def gen_uuid(cast_type: Type = str):
     id_ = uuid.uuid4()
     return safe_cast(id_, cast_type, id_)
