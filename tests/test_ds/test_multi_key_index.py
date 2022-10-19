@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from commons.multi_key_index import MultiKeyIndex
+from commons.ds.multi_key_index import MultiKeyIndex
 
 class TestMultiIndexCache(TestCase):
     def _setup_cache(self):
@@ -40,7 +40,7 @@ class TestMultiIndexCache(TestCase):
 
     def test_get(self):
         cache = self._setup_cache()
-        result = cache.get_first('id', 1)
+        result = cache.get_first_or_none('id', 1)
         assert result['id'] == 1
         assert result['name'] == 'John'
         assert result['age'] == 20
