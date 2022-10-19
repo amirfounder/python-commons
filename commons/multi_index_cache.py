@@ -2,67 +2,6 @@ from collections import defaultdict
 from typing import List
 
 
-"""
-Example Cache
-
-host_cache: dict[str, MultiKeyIndex] = {
-    'localhost:3000': {
-        'model_class': ...,
-        'primary_index_key': 'id',
-        'secondary_index_keys': ['name', 'age'],
-        '_cached': {
-            1: {
-                'id': 1,
-                'name': 'John',
-                'age': 18,
-                'ssn': '123-45-6789'
-            },
-            2: {
-                'id': 2,
-                'name': 'John',
-                'age': 19,
-                'ssn': '234-56-7890'
-            },
-            3: {
-                'id': 3,
-                'name': 'Jane',
-                'age': 20,
-                'ssn': '345-67-8901'
-            }
-        },
-        'indices: {
-            'name': {
-                'John': [1, 2],
-                'Jane': [3]
-            },
-            'age': {
-                18: [1],
-                19: [2],
-                20: [3]
-            },
-            'ssn': {
-                '123-45-6789': [1],
-                '234-56-7890': [2],
-                '345-67-8901': [3]
-            }
-        }
-    }
-}
-
-HOST = 'localhost:3000'
-
-cache = host_cache[HOST]
-cache.get(name='John')
-cache.get({
-    'age': '18'
-})
-cache.getFirst({
-    'name': 'John',
-    'age': '18'
-})
-"""
-
-
 class MultiKeyIndex:
     def __init__(self, primary_index_key: str, secondary_index_keys: List[str]):
         self.primary_index_key = primary_index_key
