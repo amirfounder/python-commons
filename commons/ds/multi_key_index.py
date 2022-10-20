@@ -1,125 +1,103 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Optional, Iterable
+
+from commons.utils import pop_first, pop_last
 
 
 class MultiKeyIndex:
-    """
-    A data structure that supports querying your data by multiple keys. A primary key is required (often 'id') and
-    secondary keys are optional. All operations run in O(1) time - arguably O(k) where k is the length of the
-    secondary index keys list.
-    """
 
-    def __init__(self, primary_index_key: str, secondary_index_keys: List[str] = None):
-        """
-        :param primary_index_key: The primary key of the objects in the index. This is required.
-        :param secondary_index_keys:
-        """
+    def __init__(self, primary_index_key: str, secondary_index_keys: Iterable[str] = None):
         self.primary_index_key = primary_index_key
         self.secondary_index_keys = set(secondary_index_keys or [])
-        self.index_keys = {self.primary_index_key, *self.secondary_index_keys}
-        self.data = {
-            self.primary_index_key: {},
-            **{key: defaultdict(set) for key in self.secondary_index_keys}
-        }
+        self.primary_and_secondary_index_keys = {self.primary_index_key, *self.secondary_index_keys}
+        self.primary_index = {}
+        self.secondary_indices = {key: defaultdict(set) for key in self.secondary_index_keys}
+
+    def remove_object_references_from_secondary_indices(self, obj: dict):
+        for key in self.secondary_index_keys:
+            value = obj[key]
+            self.secondary_indices[key][value].remove(obj[self.primary_index_key])
+
+            if not self.secondary_indices[key][value]:
+                self.secondary_indices[key].pop(value)
+
+    def add_object_reference_to_secondary_indices(self, obj: dict):
+        for key in self.secondary_index_keys:
+            value = obj[key]
+            self.secondary_indices[key][value].add(obj[self.primary_index_key])
 
     def validate_object(self, obj: dict):
-        """
-        Validates that the object has all the keys required by the index.
-        :param obj: The object to validate.
-        :return: None
-        """
         missing_keys = []
-        for key in self.index_keys:
+        for key in self.primary_and_secondary_index_keys:
             if key not in obj:
                 missing_keys.append(key)
 
         if missing_keys:
-            raise ValueError(f'Object missing keys: {missing_keys}')
+            raise KeyError(f'Object missing keys: {missing_keys}')
 
     def add(self, obj: dict):
-        """
-        Adds an object to the index. If an object with the same primary key value already exists in the index, it will
-        be removed and overwritten.
-        :param obj: The object to add to the index.
-        :return:
-        """
         self.validate_object(obj)
         primary_index_key_value = obj[self.primary_index_key]
 
-        if self.data[self.primary_index_key].get(primary_index_key_value):
-            self.remove(primary_index_key_value)
+        if self.primary_index.get(primary_index_key_value):
+            self.pop(primary_index_key_value)
 
-        self.data[self.primary_index_key][primary_index_key_value] = obj
+        self.primary_index[primary_index_key_value] = obj
+        self.add_object_reference_to_secondary_indices(obj)
 
-        for key in self.secondary_index_keys:
-            value = obj[key]
-            self.data[key][value].add(obj[self.primary_index_key])
+    def popitem(self, first=False) -> dict:
+        pop_fn = pop_first if first else pop_last
+        obj = pop_fn(self.primary_index)
+        self.remove_object_references_from_secondary_indices(obj)
+        return obj
 
-    def remove(self, primary_index_key_value):
-        """
-        Removes an object from the index by its primary key value. Then removes it from all secondary indexes.
-        :param primary_index_key_value: The value of the primary key of the object to remove.
-        :return: None
-        """
-        obj = self.data[self.primary_index_key].pop(primary_index_key_value)
-        for key in self.secondary_index_keys:
-            value = obj[key]
-            self.data[key][value].remove(primary_index_key_value)
+    def shift_to_end(self, primary_index_key_value):
+        obj = self.primary_index.pop(primary_index_key_value)
+        self.primary_index[primary_index_key_value] = obj
 
-            if not self.data[key][value]:
-                self.data[key].pop(value)
+    def pop(self, primary_index_key_value) -> Optional[dict]:
+        obj = self.primary_index.pop(primary_index_key_value, None)
 
-    def query(self, query: dict) -> List[dict]:
-        """
-        Queries the index by a dictionary of key-value pairs. The keys must be in the index. If the values are not in
-        the associated index, an empty list will be returned. If the query contains an 'id' key, the value of that key
-        will be used to query the primary index and return a list of length 1.
-        :param query:
-        :return:
-        """
-        id_ = query.pop('id', None)
-        if id_:
-            return [self.data[self.primary_index_key].get(id_)]
+        if obj:
+            self.remove_object_references_from_secondary_indices(obj)
+
+        return obj
+
+    def query(self, query: dict = None) -> List[dict]:
+        if not query:
+            return list(self.primary_index.values())
+
+        if id_ := query.pop('id', None):
+            return [self.primary_index.get(id_)]
 
         matched_ids_sets = []
         for key, value in query.items():
             if key not in self.secondary_index_keys:
                 raise ValueError(f'Invalid key: {key}')
 
-            matched_ids_sets.append(self.data[key].get(value, None) or set())
+            matched_ids_set = self.secondary_indices[key].get(value)
+            if not matched_ids_set:
+                return []
+
+            matched_ids_sets.append(matched_ids_set)
 
         while len(matched_ids_sets) > 1:
             matched_ids_sets.append(matched_ids_sets.pop() & matched_ids_sets.pop())
 
-        return [self.data[self.primary_index_key][id_] for id_ in matched_ids_sets[0]]
+        results = []
+
+        for id_ in matched_ids_sets[0]:
+            results.append(self.primary_index[id_])
+
+        return results
 
     def get_all(self, key, value) -> List[dict]:
-        """
-        Returns all objects in the index that have the given key-value pair in their secondary index.
-        :param key: The key to query.
-        :param value: The value to query.
-        :return:
-        """
         return self.query({key: value})
 
     def get_one(self, key: str, value: any, at_index: int = 0) -> dict:
-        """
-        Returns the object at the given index in the list of objects that have the given key-value pair in their
-        secondary index.
-        :param key: The key to query.
-        :param value: The value to query.
-        :param at_index: The index of the object to return. Defaults to 0.
-        :return:
-        """
         results = self.get_all(key, value)
         return results[at_index]
 
     def get_first_or_none(self, key, value) -> dict:
-        """
-        Returns the first object in the list of objects that have the given key-value pair in their secondary index.
-        :param key: The key to query.
-        :param value: The value to query.
-        :return:
-        """
         results = self.get_all(key, value)
         return results[0] if results else None

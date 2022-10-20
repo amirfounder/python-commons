@@ -1,4 +1,4 @@
-class OrderedKeyIndex:
+class SortedKeyIndex:
     def __init__(self):
         self._keys = []
         self._data = dict()
@@ -13,14 +13,14 @@ class OrderedKeyIndex:
 
     def get_largest(self):
         """
-        Returns the value a the largest key
+        Returns the value of the largest key
         :return:
         """
         pass
 
     def get_smallest(self):
         """
-        Returns the value a the smallest key
+        Returns the value of the smallest key
         """
         pass
 
