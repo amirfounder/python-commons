@@ -51,8 +51,8 @@ class MultiKeyIndex:
         if not query:
             return list(self.primary_index.values())
 
-        if id_ := query.pop('id', None):
-            return [self.primary_index.get(id_)]
+        if primary_index_key_value := query.pop(self.primary_index_key, None):
+            return [self.primary_index.get(primary_index_key_value)]
 
         matched_ids_sets = []
         for key, value in query.items():
