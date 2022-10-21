@@ -86,7 +86,7 @@ class TestMultiIndexCache(TestCase):
 
     def test_get(self):
         cache = self._setup_cache()
-        result = cache.get_first_or_none('id', 1)
+        result = cache.get_first('id', 1)
         assert result['id'] == 1
         assert result['name'] == 'John'
         assert result['age'] == 20
