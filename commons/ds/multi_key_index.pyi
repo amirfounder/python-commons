@@ -5,8 +5,8 @@ class MultiKeyIndex:
     """
     A data structure that supports querying your data by multiple keys. A primary key is required (often 'id') and
     secondary keys are optional. All supporting operations run in O(1) time - arguably O(k) where k is the length of the
-    secondary index keys list. Query operations are O(n) where k is the minimum number in the secondary index keys list
-    that matches the query.
+    secondary index keys list. Query operations are O(min(m, n)) where m and n are the number of primary index
+    references stored in the associated secondary key index.
     """
 
     def __init__(self, primary_index_key: str, secondary_index_keys: Iterable[str]):
