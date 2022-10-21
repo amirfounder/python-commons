@@ -4,8 +4,9 @@ from typing import Iterable, Dict, Set, List, Optional, Any
 class MultiKeyIndex:
     """
     A data structure that supports querying your data by multiple keys. A primary key is required (often 'id') and
-    secondary keys are optional. All operations run in O(1) time - arguably O(k) where k is the length of the
-    secondary index keys list.
+    secondary keys are optional. All supporting operations run in O(1) time - arguably O(k) where k is the length of the
+    secondary index keys list. Query operations are O(n) where k is the minimum number in the secondary index keys list
+    that matches the query.
     """
 
     def __init__(self, primary_index_key: str, secondary_index_keys: Iterable[str]):
