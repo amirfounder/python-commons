@@ -69,12 +69,7 @@ class MultiKeyIndex:
         if not matched_ids:
             return []
 
-        results = []
-
-        for id_ in matched_ids:
-            results.append(self.primary_index[id_])
-
-        return results
+        return [self.primary_index[id_] for id_ in matched_ids]
 
     def get_all(self, key, value) -> List[dict]:
         return self.query({key: value})
