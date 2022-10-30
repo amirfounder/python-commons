@@ -17,7 +17,7 @@ class MultiKeyIndexLRUCache:
         return self.index.pop(lru_key)
 
     def _push_to_mru(self, obj):
-        key = obj[self.index.primary_index_key]
+        key = obj[self.index.primary_index_object_key]
 
         self.index.primary_index.pop(key)
         self.index.primary_index[key] = obj

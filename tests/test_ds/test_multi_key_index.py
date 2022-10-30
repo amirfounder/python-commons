@@ -13,14 +13,14 @@ class TestMultiKeyIndexAdd(TestCase):
         assert cache.primary_index[2] == {'id': 2, 'name': 'John'}
         assert cache.secondary_indices['name']['John'] == {1, 2}
 
-    def test_add__given_duplicate_primary_index_key__overwrites(self):
+    def test_add__given_duplicate_primary_index_object_key__overwrites(self):
         cache = MultiKeyIndex('id', ['name'])
         cache.add({'id': 1, 'name': 'John'})
         cache.add({'id': 1, 'name': 'Jack'})
 
         assert cache.primary_index[1] == {'id': 1, 'name': 'Jack'}
 
-    def test_add__given_missing_primary_index_key__raises_exception(self):
+    def test_add__given_missing_primary_index_object_key__raises_exception(self):
         cache = MultiKeyIndex('id', ['name'])
         with self.assertRaises(KeyError):
             cache.add({'name': 'John'})

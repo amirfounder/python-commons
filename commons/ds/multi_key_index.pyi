@@ -1,4 +1,12 @@
-from typing import Iterable, Dict, Set, List, Optional, Any
+from typing import Iterable, Dict, Set, List, Optional, Any, TypeVar, Generic
+
+_T = TypeVar('_T', default=dict)
+
+
+class MultiKeyIndexObject(Generic[_T]):
+    def __init__(self, obj: _T, context: dict):
+        self.value = obj
+        self.context = context
 
 
 class MultiKeyIndex:
@@ -9,15 +17,15 @@ class MultiKeyIndex:
     references stored in the associated secondary key index.
     """
 
-    def __init__(self, primary_index_key: str, secondary_index_keys: Iterable[str]):
+    def __init__(self, primary_index_object_key: str, secondary_index_keys: Iterable[str]):
         """
         Time complexity: O(k) where k is the length of the secondary index keys list.
-        :param primary_index_key: The primary key of the objects in the index. This is required.
+        :param primary_index_object_key: The primary key of the objects in the index. This is required.
         :param secondary_index_keys:
         """
-        self.primary_index_key: str = ...
-        self.secondary_index_keys: Set[str] = ...
-        self.primary_index: dict[str | int, dict] = ...
+        self.primary_index_object_key: str = ...
+        self.secondary_index_object_keys: Set[str] = ...
+        self.primary_index: dict[str | int, MultiKeyIndexObject] = ...
         self.secondary_indices: Dict[str, Dict[str | int, Set[str]]] = ...
 
     def _remove_object_references_from_secondary_indices(self, obj: dict):
@@ -60,10 +68,10 @@ class MultiKeyIndex:
         """
         ...
 
-    def pop(self, primary_index_key_value, default=None) -> Optional[dict]:
+    def pop(self, primary_index_object_key_value, default=None) -> Optional[dict]:
         """
         Pops an object from the index by its primary key value. Then removes it from all secondary indices.
-        :param primary_index_key_value: The value of the primary key of the object to remove.
+        :param primary_index_object_key_value: The value of the primary key of the object to remove.
         :param default: The default value to return if the object is not found.
         :return: None
         """

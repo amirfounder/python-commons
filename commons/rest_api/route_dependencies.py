@@ -18,6 +18,12 @@ def get_host():
     return Depends(dependency)
 
 
+def get_origin():
+    def dependency(origin: str = Header(default=None)):
+        return origin
+    return Depends(dependency)
+
+
 def get_bearer_token():
     def dependency(token: HTTPAuthorizationCredentials = Depends(http_bearer)):
         if token:
